@@ -62,7 +62,7 @@
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: var(--transition);
+  transition: all var(--transition-interactive);
   border-right: 1px solid var(--color-border);
   white-space: nowrap;
 }
@@ -95,7 +95,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: var(--transition);
+  transition: all var(--transition-interactive);
   white-space: nowrap;
 }
 
@@ -526,7 +526,7 @@
   font-size: var(--text-xs);
   font-weight: 600;
   cursor: pointer;
-  transition: var(--transition);
+  transition: all var(--transition-interactive);
   text-align: center;
   margin-top: 2px;
 }
@@ -651,7 +651,7 @@
 
 /* Map section height fill */
 #section-map.content-section {
-  height: calc(100dvh - 36px - 52px);
+  height: calc(100dvh - 32px - 54px); /* pulse-bar + header, fallback if flex fails */
 }
 
 /* When map section active, suppress main-content padding and overflow */

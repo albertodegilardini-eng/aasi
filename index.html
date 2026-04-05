@@ -3,22 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Santa Fe CI — Decision Engine for High-Value Leasing</title>
-<meta name="description" content="Market intelligence for Santa Fe, CDMX. Leasing, pricing, comparables and negotiation execution across Península, Torre 300 and Paradox.">
+<title>Santa Fe CI — Competitive Intelligence Platform</title>
+<meta name="description" content="Real estate competitive intelligence for Santa Fe, CDMX. Listings, scoring, negotiation bands, and agent credibility.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.5.0/dist/maplibre-gl.css">
 <script src="https://unpkg.com/maplibre-gl@4.5.0/dist/maplibre-gl.js"></script>
 
-<link rel="stylesheet" href="./base.css?v=20260404-1654">
-<link rel="stylesheet" href="./style.css?v=20260404-1654">
-<link rel="stylesheet" href="./map.css?v=20260404-1654">
-<link rel="stylesheet" href="./tracking.css?v=20260404-1654">
-<link rel="stylesheet" href="./enhancements.css?v=20260404-2200">
+<link rel="stylesheet" href="./base.css">
+<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="./map.css">
 </head>
 <body>
   <div id="app">
@@ -27,7 +25,7 @@
     <div class="market-pulse-bar" id="marketPulseBar">
       <div class="pulse-left">
         <span class="pulse-dot pulse-live" aria-label="Live"></span>
-        <span class="pulse-label">SF·CI</span>
+        <span class="pulse-label">Santa Fe CI</span>
         <span class="data-status demo" id="dataStatusBadge">Cargando</span>
         <span class="pulse-sep">·</span>
         <span id="pulseListings" class="pulse-stat">— listados</span>
@@ -50,28 +48,22 @@
         <button class="back-btn" id="backBtn" aria-label="Volver al resumen" style="display:none;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         </button>
-        <!-- Wordmark logo — intelligence platform identity -->
-        <div class="logo" id="logoBtn" role="button" tabindex="0" aria-label="Santa Fe CI — Plataforma de inteligencia">
-          <svg class="logo-mark" width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true">
-            <!-- Precision monogram: SF grid mark -->
-            <rect x="1" y="1" width="24" height="24" rx="4" stroke="currentColor" stroke-width="1.5"/>
-            <!-- S stroke -->
-            <path d="M8 17.5C8 17.5 9.5 19 12.5 19C15.5 19 17 17.5 17 15.5C17 13 14.5 12.5 12.5 12C10.5 11.5 9 10.5 9 8.5C9 6.5 10.5 7 12.5 7C14.5 7 16 8 16 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-            <!-- F bar -->
-            <line x1="9" y1="13" x2="15.5" y2="13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.45"/>
+        <!-- SVG logo mark -->
+        <div class="logo" id="logoBtn" role="button" tabindex="0" aria-label="Inicio">
+          <svg class="logo-mark" width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+            <rect x="2" y="2" width="24" height="24" rx="6" fill="currentColor" opacity="0.12"/>
+            <path d="M8 20V14L14 8L20 14V20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="11" y="15" width="6" height="5" rx="1" fill="currentColor" opacity="0.7"/>
           </svg>
-          <div class="logo-text-wrap">
-            <span class="logo-text">Santa Fe<span class="logo-wordmark-sep"> </span><span class="logo-accent">CI</span></span>
-            <span class="logo-tagline">Market Intelligence</span>
-          </div>
+          <span class="logo-text">Santa Fe <span class="logo-accent">CI</span></span>
         </div>
       </div>
 
       <div class="header-center">
         <div class="search-wrapper" id="searchWrapper">
           <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-          <input type="text" id="searchInput" placeholder="Buscar por ID, edificio, precio… (⌘K)" autocomplete="off" aria-label="Buscar listados" aria-controls="searchResults" aria-autocomplete="list">
-          <div class="search-results" id="searchResults" role="listbox" aria-expanded="false"></div>
+          <input type="text" id="searchInput" placeholder="Buscar por ID, edificio, precio... (⌘K)" autocomplete="off" aria-label="Buscar listados">
+          <div class="search-results" id="searchResults" role="listbox"></div>
         </div>
       </div>
 
@@ -101,28 +93,9 @@
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
             <span>Mapa</span>
           </button>
-          <button class="nav-btn" id="trackingNavBtn" data-view="tracking">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-            <span>Fuentes</span>
-            <span class="nav-alert-dot" id="trackingAlertDot" style="display:none;"></span>
-          </button>
         </nav>
 
         <div class="header-actions">
-          <!-- Bot: ask AI button in header -->
-          <button class="sf-bot-header-btn" id="sfBotHeaderBtn" title="Asistente SF·CI — pregunta sobre los datos (⌘/)" aria-label="Abrir asistente de inteligencia" onclick="sfBotOpen && sfBotOpen()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            Preguntar
-          </button>
-          <!-- Blueprint merge: guided mode help button -->
-          <button class="help-btn" id="guidedModeBtn" title="Modo guiado — cómo usar la plataforma" aria-label="Abrir guía de uso">
-            ?
-          </button>
-          <!-- Blueprint merge: export snapshot button -->
-          <button class="export-snapshot-btn" id="exportSnapshotBtn" title="Exportar snapshot de listados actuales" aria-label="Exportar snapshot JSON">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Export
-          </button>
           <button class="icon-btn" id="refreshBtn" title="Actualizar datos" aria-label="Actualizar datos">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
           </button>
@@ -143,22 +116,22 @@
 
         <!-- Hero banner -->
         <div class="overview-hero" role="img" aria-label="Vista aérea Santa Fe CDMX">
-          <img class="overview-hero-img" src="img/hero-santafe.jpg" alt="Santa Fe CDMX vista nocturna" fetchpriority="high" decoding="async">
+          <img class="overview-hero-img" src="img/santafe-night.jpg" alt="Santa Fe CDMX vista nocturna" fetchpriority="high" decoding="async">
           <div class="overview-hero-overlay"></div>
           <div class="overview-hero-badge">
             <span class="hero-live-dot"></span>
             <span>Santa Fe CI · Abril 2026</span>
           </div>
           <div class="overview-hero-content">
-            <div class="overview-hero-title">Intelligence Layer</div>
-            <div class="overview-hero-sub">Santa Fe · CDMX · Arrendamiento de alto valor &middot; Península &middot; Torre 300 &middot; Paradox</div>
+            <div class="overview-hero-title">Inteligencia Competitiva</div>
+            <div class="overview-hero-sub">Santa Fe · CDMX · Península &middot; Torre 300 &middot; Paradox</div>
           </div>
         </div>
 
         <!-- Page title + filter row -->
         <div class="view-header">
           <div class="view-title-block">
-            <h1>Intelligence Layer — Decisión de Arrendamiento, Santa Fe</h1>
+            <h1>Inteligencia Competitiva — Santa Fe</h1>
             <p class="subtitle" id="overviewSubtitle">Cargando listados…</p>
           </div>
           <div class="filter-row" role="group" aria-label="Filtrar listados">
@@ -174,105 +147,6 @@
             <button class="filter-chip" data-filter="1bed">1 Rec</button>
             <button class="filter-chip" data-filter="2bed">2 Rec</button>
             <button class="filter-chip" data-filter="3bed">3+ Rec</button>
-          </div>
-        </div>
-
-        <!-- Blueprint merge: decision engine banner + advanced filters collapse -->
-        <div class="decision-engine-banner" id="decisionEngineBanner">
-          <span class="decision-engine-eyebrow">Operating view — Motor de decisión</span>
-          <div class="decision-engine-sep"></div>
-          <span class="decision-engine-summary" id="decisionEngineSummary">Cargando inteligencia de mercado&hellip;</span>
-          <button class="decision-engine-cta" id="decisionEngineGuideBtn">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-            Guía rápida
-          </button>
-        </div>
-
-        <!-- Advanced filter collapse (blueprint) -->
-        <details class="adv-filter-details" id="advFilterDetails">
-          <summary class="adv-filter-summary">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-            Execution controls — Filtros avanzados
-            <span class="adv-filter-arrow">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-            </span>
-          </summary>
-          <div class="adv-filter-body">
-            <div class="adv-filter-group">
-              <label class="adv-filter-label" for="advTowerFilter">Torre</label>
-              <select class="adv-filter-select" id="advTowerFilter">
-                <option value="all">Todas las torres</option>
-                <option value="peninsula">Península</option>
-                <option value="torre300">Torre 300</option>
-                <option value="paradox">Paradox</option>
-              </select>
-            </div>
-            <div class="adv-filter-group">
-              <label class="adv-filter-label" for="advBedsFilter">Recámaras</label>
-              <select class="adv-filter-select" id="advBedsFilter">
-                <option value="all">Todas</option>
-                <option value="1">1 recámara</option>
-                <option value="2">2 recámaras</option>
-                <option value="3">3+ recámaras</option>
-              </select>
-            </div>
-            <div class="adv-filter-group">
-              <label class="adv-filter-label" for="advSortFilter">Ordenar por</label>
-              <select class="adv-filter-select" id="advSortFilter">
-                <option value="composite_score">Oportunidad (score composite)</option>
-                <option value="leverage_score">Leverage</option>
-                <option value="price_asc">Precio ↑</option>
-                <option value="price_desc">Precio ↓</option>
-                <option value="dom">Mayor antigüedad (DOM)</option>
-              </select>
-            </div>
-            <div class="adv-filter-group">
-              <label class="adv-filter-label" for="advMinPriceFilter">Precio mín. (MXN)</label>
-              <input class="adv-filter-input" type="number" id="advMinPriceFilter" placeholder="30 000" min="0" step="1000">
-            </div>
-            <div class="adv-filter-group">
-              <label class="adv-filter-label" for="advMinSqmFilter">M² mínimo</label>
-              <input class="adv-filter-input" type="number" id="advMinSqmFilter" placeholder="0" min="0" step="5">
-            </div>
-            <div class="adv-filter-group">
-              <label class="adv-filter-label"> </label>
-              <label class="adv-filter-checkbox-row">
-                <input type="checkbox" id="advNegotiableOnly">
-                Mostrar solo negociables
-              </label>
-            </div>
-          </div>
-          <div class="adv-filter-actions">
-            <button class="adv-filter-apply-btn" id="advFilterApplyBtn">Aplicar filtros</button>
-            <button class="adv-filter-reset-btn" id="advFilterResetBtn">Restablecer</button>
-          </div>
-        </details>
-
-        <!-- Operating context strip (blueprint: single-source-of-truth summary) -->
-        <div class="operating-context-strip" id="operatingContextStrip">
-          <div class="op-context-item">
-            <span class="op-context-label">Universo</span>
-            <span class="op-context-value" id="ctxUniverse">—</span>
-          </div>
-          <div class="op-context-sep"></div>
-          <div class="op-context-item">
-            <span class="op-context-label">Mediana</span>
-            <span class="op-context-value" id="ctxMedian">—</span>
-          </div>
-          <div class="op-context-sep"></div>
-          <div class="op-context-item">
-            <span class="op-context-label">$/m²</span>
-            <span class="op-context-value" id="ctxPsm">—</span>
-          </div>
-          <div class="op-context-sep"></div>
-          <div class="op-context-item">
-            <span class="op-context-label">Para negociar</span>
-            <span class="op-context-value" id="ctxNegotiate">—</span>
-          </div>
-          <div class="op-context-sep"></div>
-          <div class="op-context-item">
-            <span class="op-context-label">Mejor oportunidad</span>
-            <span class="op-context-value" id="ctxBestDeal">—</span>
           </div>
         </div>
 
@@ -314,11 +188,11 @@
           <div class="sort-controls">
             <label class="sort-label" for="sortSelect">Ordenar:</label>
             <select id="sortSelect" class="sort-select">
-              <option value="composite_score">Oportunidad</option>
+              <option value="composite_score">Score Composite</option>
               <option value="leverage_score">Leverage</option>
-              <option value="price_asc">Precio ascendente</option>
-              <option value="price_desc">Precio descendente</option>
-              <option value="dom">Mayor antigüedad</option>
+              <option value="price_asc">Precio ↑</option>
+              <option value="price_desc">Precio ↓</option>
+              <option value="dom">Días en Mercado</option>
             </select>
           </div>
         </div>
@@ -380,18 +254,10 @@
            ║  OPERATOR VIEW                   ║
            ╚══════════════════════════════════╝ -->
       <div id="operatorView" class="view">
-        <!-- Blueprint merge: negotiation decision framing banner -->
-        <div class="negotiation-decision-banner">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" color="var(--color-success)"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-          <div class="decision-banner-text">
-            <div class="decision-banner-label" style="color:var(--color-success)">Negotiation workbench — Lista de acción</div>
-            <div class="decision-banner-desc">Unidades ordenadas por score de acción. “Negociar” = oportunidad verificada con banda de oferta, opening anchor y battle card listos. Actúa en las unidades críticas de hoy.</div>
-          </div>
-        </div>
         <div class="view-header">
           <div class="view-title-block">
-            <h1>Negotiation Workbench — Hoy</h1>
-            <p class="subtitle" id="operatorSubtitle">Argumentos, banda operativa y guión de cierre · Ordenado por score de acción · Opening anchor y battle card incluidos</p>
+            <h1>Lista de Acción — Hoy</h1>
+            <p class="subtitle" id="operatorSubtitle">Prioridades del día ordenadas por score de acción</p>
           </div>
         </div>
 
@@ -424,18 +290,10 @@
            ║  COMPARE VIEW                    ║
            ╚══════════════════════════════════╝ -->
       <div id="compareView" class="view">
-        <!-- Blueprint merge: compare decision framing banner -->
-        <div class="compare-decision-banner">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" color="var(--color-primary)"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-          <div class="decision-banner-text">
-            <div class="decision-banner-label">Comparative matrix — Benchmark operativo</div>
-            <div class="decision-banner-desc">Analiza hasta 3 torres en paralelo. Prioriza $/m² y días en mercado como indicadores primarios de valor. El score composite refleja oportunidad ajustada por riesgo de agente y confianza de datos.</div>
-          </div>
-        </div>
         <div class="view-header">
           <div class="view-title-block">
-            <h1>Comparative Matrix — Benchmark por Torre</h1>
-            <p class="subtitle">$/m² · Días en mercado · Leverage · Score composite por edificio</p>
+            <h1>Comparación de Edificios</h1>
+            <p class="subtitle">Precio por m², días en mercado y scoring por torre</p>
           </div>
         </div>
         <div class="compare-content">
@@ -530,88 +388,6 @@
       </div>
 
       <!-- ╔══════════════════════════════════╗
-           ║  TRACKING VIEW                   ║
-           ╚══════════════════════════════════╝ -->
-      <div id="trackingView" class="view">
-        <div class="view-header">
-          <div class="view-title-block">
-            <h1>Verificación de Fuentes</h1>
-            <p class="subtitle" id="trackingSubtitle">Estado de las fuentes monitoreadas — qué se revisó, qué cambió, qué requiere atención</p>
-          </div>
-          <div class="tracking-header-actions">
-            <div class="verify-run-context" id="verifyRunContext">
-              <span class="verify-last-run-label">Última verificación:</span>
-              <span class="verify-last-run-ts" id="verifyLastRunTs">—</span>
-            </div>
-            <button class="collect-run-btn" id="run-collect-btn" data-testid="button-run-collect">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
-              Verificar ahora
-            </button>
-          </div>
-        </div>
-
-        <!-- Alert Summary KPIs -->
-        <div class="tracking-kpi-row" id="trackingKpiRow"></div>
-
-        <!-- Tabs -->
-        <div class="tracking-tabs" id="trackingTabs" role="tablist">
-          <button class="tracking-tab active" data-tracking-tab="alerts" role="tab" aria-selected="true" data-testid="tab-alerts">Alertas activas</button>
-          <button class="tracking-tab" data-tracking-tab="watchstate" role="tab" aria-selected="false" data-testid="tab-watchstate">Listados en vigilancia</button>
-          <button class="tracking-tab" data-tracking-tab="eventlog" role="tab" aria-selected="false" data-testid="tab-eventlog">Registro de cambios</button>
-          <button class="tracking-tab" data-tracking-tab="snapshots" role="tab" aria-selected="false" data-testid="tab-snapshots">Capturas de fuente</button>
-        </div>
-
-        <!-- Alerts Panel -->
-        <div class="tracking-panel" id="trackingPanel-alerts">
-          <!-- Alert rules reference -->
-          <div class="tracking-section-header">
-            <span class="tracking-section-title">Cambios que requieren atención</span>
-            <div class="alert-filter-row" id="alertFilterRow">
-              <button class="filter-chip active" data-alert-filter="all">Todas</button>
-              <button class="filter-chip" data-alert-filter="critical">Críticas</button>
-              <button class="filter-chip" data-alert-filter="high">Altas</button>
-              <button class="filter-chip" data-alert-filter="medium">Medias</button>
-              <button class="filter-chip" data-alert-filter="low">Bajas</button>
-            </div>
-          </div>
-          <div class="alerts-feed" id="alertsFeed"></div>
-        </div>
-
-        <!-- Watch State Panel -->
-        <div class="tracking-panel" id="trackingPanel-watchstate" style="display:none;">
-          <div class="tracking-section-header">
-            <span class="tracking-section-title">Listados en seguimiento</span>
-            <span class="tracking-section-sub" id="watchStateCount">Cargando…</span>
-          </div>
-          <div class="watch-state-table-wrap" id="watchStateTable"></div>
-        </div>
-
-        <!-- Event Log Panel -->
-        <div class="tracking-panel" id="trackingPanel-eventlog" style="display:none;">
-          <div class="tracking-section-header">
-            <span class="tracking-section-title">Historial de cambios detectados</span>
-            <div class="alert-filter-row" id="eventLogFilterRow">
-              <button class="filter-chip active" data-event-filter="all">Todos</button>
-              <button class="filter-chip" data-event-filter="off_market">Fuera mercado</button>
-              <button class="filter-chip" data-event-filter="price_drop">Baja precio</button>
-              <button class="filter-chip" data-event-filter="source_missing">Sin fuente</button>
-              <button class="filter-chip" data-event-filter="access_blocked">Bloqueado</button>
-            </div>
-          </div>
-          <div class="event-log-list" id="eventLogList"></div>
-        </div>
-
-        <!-- Snapshots Panel -->
-        <div class="tracking-panel" id="trackingPanel-snapshots" style="display:none;">
-          <div class="tracking-section-header">
-            <span class="tracking-section-title">Capturas de fuente</span>
-            <span class="tracking-section-sub">Última lectura por URL de origen</span>
-          </div>
-          <div class="snapshots-list" id="snapshotsList"></div>
-        </div>
-      </div>
-
-      <!-- ╔══════════════════════════════════╗
            ║  MAP VIEW                        ║
            ╚══════════════════════════════════╝ -->
       <div id="mapView" class="view">
@@ -659,10 +435,13 @@
             <!-- Map canvas -->
             <div class="map-canvas" id="mapCanvas"></div>
 
-            <!-- Legend — decision key (always visible) -->
+            <!-- Legend -->
             <div class="map-legend" id="mapLegend">
+              <div class="map-legend-toggle" id="mapLegendToggle" role="button" tabindex="0" aria-expanded="false">
+                <span class="map-legend-toggle-label">Leyenda</span>
+                <span class="map-legend-toggle-arrow">▲</span>
+              </div>
               <div class="map-legend-items">
-                <div class="map-legend-label-row">Torres</div>
                 <div class="map-legend-row">
                   <span class="legend-tower-pin peninsula"></span> Península
                 </div>
@@ -673,15 +452,18 @@
                   <span class="legend-tower-pin paradox"></span> Paradox
                 </div>
                 <div class="map-legend-sep"></div>
-                <div class="map-legend-label-row">Confianza</div>
                 <div class="map-legend-row">
-                  <span class="legend-conf-dot conf-high"></span> Alta
+                  <span class="legend-bubble high-conf"></span> Alta confianza
                 </div>
                 <div class="map-legend-row">
-                  <span class="legend-conf-dot conf-mid"></span> Media
+                  <span class="legend-bubble mid-conf"></span> Media
                 </div>
                 <div class="map-legend-row">
-                  <span class="legend-conf-dot conf-low"></span> Baja
+                  <span class="legend-bubble low-conf"></span> Baja
+                </div>
+                <div class="map-legend-sep"></div>
+                <div class="map-legend-row">
+                  <span class="legend-bubble fast-move"></span> Mov. rápido
                 </div>
               </div>
             </div>
@@ -692,130 +474,19 @@
 
     </main>
 
-    <!-- ═══ FOOTER (blueprint merge: animated market pulse ticker) ═══ -->
+    <!-- ═══ FOOTER ═══ -->
     <footer class="app-footer">
-      <!-- Animated ticker track (blueprint pattern) -->
-      <div class="ticker-scroll-wrap" id="tickerScrollWrap" aria-label="Pulso de mercado">
-        <div class="ticker-scroll-track" id="tickerScrollTrack">
-          <!-- JS populates this with duplicated items for seamless loop -->
-        </div>
-      </div>
-      <!-- Footer meta -->
-      <span class="pulse-mono" style="flex-shrink:0;white-space:nowrap;">
-        <span id="cacheStatusFooter"></span>
-      </span>
+      <span>Datos de Inmuebles24, MetrosCúbicos y fuentes directas. Abril 2026.</span>
+      <span id="cacheStatusFooter" class="pulse-mono"></span>
+      <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer">Perplexity Computer</a> · Enhanced by Claude
     </footer>
 
   </div><!-- /#app -->
 
-  <!-- ═══ GUIDED MODE DIALOG (blueprint merge) ═══ -->
-  <dialog id="guidedDialog" class="guided-dialog-bp" aria-labelledby="guidedDialogTitle">
-    <div class="guided-card-bp">
-      <div class="guided-eyebrow">Modo guiado</div>
-      <h2 class="guided-title" id="guidedDialogTitle">Flujo de trabajo recomendado</h2>
-      <p class="guided-subtitle">Esta plataforma es un motor de decisión para transacciones inmobiliarias de alto valor en Santa Fe.</p>
-      <ol class="guided-steps">
-        <li class="guided-step">
-          <div class="guided-step-num">1</div>
-          <div class="guided-step-text">
-            <div class="guided-step-label">Filtrar el universo</div>
-            <div class="guided-step-desc">Usa las fichas rápidas (torre, recámaras, oportunidad) para reducir el ruido. Abre “Filtros avanzados” para ajustar precio mínimo, m² y ordenamiento.</div>
-          </div>
-        </li>
-        <li class="guided-step">
-          <div class="guided-step-num">2</div>
-          <div class="guided-step-text">
-            <div class="guided-step-label">Inspeccionar unidades clave</div>
-            <div class="guided-step-desc">Haz clic en cualquier listado para ver el score composite, banda de negociación, historial de precio y el perfil de confianza del agente.</div>
-          </div>
-        </li>
-        <li class="guided-step">
-          <div class="guided-step-num">3</div>
-          <div class="guided-step-text">
-            <div class="guided-step-label">Comparar hasta 3 opciones</div>
-            <div class="guided-step-desc">Ve a “Comparar” para ver un análisis lado a lado de precio/m², días en mercado y leverage. Ideal antes de tomar una decisión final.</div>
-          </div>
-        </li>
-        <li class="guided-step">
-          <div class="guided-step-num">4</div>
-          <div class="guided-step-text">
-            <div class="guided-step-label">Ejecutar el operador</div>
-            <div class="guided-step-desc">Usa “Operador” para ver la lista de acción del día: unidades a negociar, mover rápido, verificar o monitorear — con scripts de apertura incluidos.</div>
-          </div>
-        </li>
-      </ol>
-      <div class="guided-actions">
-        <button class="guided-close-btn" id="guidedCloseBtn">Entendido</button>
-      </div>
-    </div>
-  </dialog>
-
   <!-- ═══ DETAIL DRAWER OVERLAY ═══ -->
   <div class="drawer-overlay" id="drawerOverlay" aria-hidden="true"></div>
 
-  <script src="./app.js?v=20260404-1654"></script>
-  <script>window.sfBotAvatarImage = './img/sf-bot-avatar.jpg?v=20260404-1736';</script>
-  <script src="./bot.js?v=20260404-1736"></script>
-<script data-pplx-inline-edit>
-(function(){
-  if(window===window.top)return;
-  function inlineAll(orig,clone){
-    if(orig.nodeType!==1)return;
-    try{
-      var cs=getComputedStyle(orig);
-      var t='';
-      for(var i=0;i<cs.length;i++){t+=cs[i]+':'+cs.getPropertyValue(cs[i])+';';}
-      clone.style.cssText=t;
-    }catch(e){}
-    var oc=orig.children,cc=clone.children;
-    for(var j=0;j<oc.length&&j<cc.length;j++){inlineAll(oc[j],cc[j]);}
-  }
-  function stripExternal(clone){
-    var imgs=clone.querySelectorAll('img');
-    for(var i=0;i<imgs.length;i++){
-      var s=imgs[i].getAttribute('src');
-      if(s&&!s.startsWith('data:'))imgs[i].removeAttribute('src');
-    }
-    var all=clone.querySelectorAll('*');
-    for(var i=0;i<all.length;i++){
-      var st=all[i].style.cssText;
-      if(st&&st.indexOf('url(')>=0){
-        all[i].style.cssText=st.replace(/url\(["']?(?!data:)[^)"']*["']?\)/gi,'none');
-      }
-    }
-  }
-  window.addEventListener('message',function(e){
-    if(!e.data||e.data.type!=='INLINE_EDIT_CAPTURE_REQUEST')return;
-    var scrollX=window.scrollX||window.pageXOffset||0;
-    var scrollY=window.scrollY||window.pageYOffset||0;
-    var w=window.innerWidth,h=window.innerHeight;
-    try{
-      var clone=document.documentElement.cloneNode(true);
-      var rm=clone.querySelectorAll('script,link[rel="stylesheet"],style');
-      for(var i=0;i<rm.length;i++){rm[i].remove();}
-      inlineAll(document.documentElement,clone);
-      stripExternal(clone);
-      var html=new XMLSerializer().serializeToString(clone);
-      var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'">'
-        +'<foreignObject width="100%" height="100%">'
-        +'<div xmlns="http://www.w3.org/1999/xhtml" style="width:'+w+'px;height:'+h+'px;overflow:hidden">'
-        +'<div style="transform:translate(-'+scrollX+'px,-'+scrollY+'px);transform-origin:top left">'
-        +html+'</div></div></foreignObject></svg>';
-      var svgUrl='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
-      var img=new Image();
-      img.onload=function(){
-        var c=document.createElement('canvas');c.width=w;c.height=h;
-        c.getContext('2d').drawImage(img,0,0);
-        window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:c.toDataURL('image/png'),scrollX:scrollX,scrollY:scrollY},'*');
-      };
-      img.onerror=function(){
-        window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:null,scrollX:scrollX,scrollY:scrollY},'*');
-      };
-      img.src=svgUrl;
-    }catch(err){
-      window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:null,scrollX:scrollX,scrollY:scrollY},'*');
-    }
-  });
-})();
-</script></body>
+  <div id="toastZone" aria-live="polite" aria-atomic="true"></div>
+  <script src="./app.js"></script>
+</body>
 </html>
