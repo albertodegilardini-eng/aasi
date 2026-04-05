@@ -1,0 +1,1054 @@
+/* ═══════════════════════════════════════════════════════════
+   SANTA FE CI — ENHANCEMENT PASS  · April 2026
+   Focus: visual hierarchy, card rhythm, bot polish,
+          header clarity, micro-interaction intentionality
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── 1. HERO — Stronger hierarchy + metric anchoring ────────
+   Taller, more cinematic. Better title scale + subtitle
+   legibility. Add a bottom-left metric overlay for
+   instant spatial orientation. */
+
+.overview-hero {
+  height: 288px;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+}
+
+.overview-hero-img {
+  filter: brightness(0.44) saturate(0.70) contrast(1.10);
+}
+
+.overview-hero:hover .overview-hero-img {
+  transform: scale(1.02);
+  filter: brightness(0.48) saturate(0.73) contrast(1.08);
+}
+
+/* Deeper bottom vignette for better text legibility */
+.overview-hero-overlay {
+  background:
+    linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.28) 50%, rgba(0,0,0,0.06) 100%),
+    linear-gradient(to right, rgba(0,0,0,0.45) 0%, transparent 65%);
+}
+
+.overview-hero-content {
+  bottom: var(--space-6);
+  left: var(--space-7, 1.75rem);
+}
+
+.overview-hero-title {
+  font-size: clamp(1.75rem, 2.5vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.0;
+  margin-bottom: var(--space-2);
+  text-shadow: 0 2px 16px rgba(0,0,0,0.55);
+}
+
+.overview-hero-sub {
+  font-size: var(--text-sm);
+  color: rgba(255,255,255,0.78);
+  font-weight: 400;
+  letter-spacing: 0.005em;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.55);
+}
+
+/* Hero badge: tighter, more refined */
+.overview-hero-badge {
+  top: var(--space-5);
+  left: var(--space-5);
+  background: rgba(8,9,12,0.62);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.14);
+  padding: 4px 12px;
+  font-size: 9.5px;
+  letter-spacing: 0.10em;
+}
+
+/* ── 2. VIEW HEADER — Tighter title hierarchy ─────────────── */
+
+.view-title-block h1 {
+  font-size: clamp(1.2rem, 1.6vw, 1.65rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  color: var(--color-text);
+}
+
+.subtitle {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin-top: 2px;
+}
+
+/* Tighter filter row spacing + crisper chips */
+.filter-row {
+  gap: var(--space-1);
+  margin-top: var(--space-3);
+}
+
+.filter-chip {
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.01em;
+  transition: all var(--transition-interactive);
+}
+
+.filter-chip:hover {
+  background: var(--color-surface-alt);
+  border-color: var(--color-primary-dim);
+  color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+.filter-chip.active {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  border-color: var(--color-primary);
+  box-shadow: 0 1px 6px var(--color-primary-dim);
+}
+
+/* ── 3. HEADER — Sharper nav + action controls ───────────── */
+
+.app-header {
+  padding: var(--space-2) var(--space-6);
+  background: color-mix(in srgb, var(--color-surface) 96%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--color-divider);
+  box-shadow: 0 1px 0 var(--color-divider);
+}
+
+/* Nav buttons: tighter gap, cleaner active state */
+.header-nav {
+  gap: 2px;
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  border: 1px solid var(--color-border);
+}
+
+.nav-btn {
+  padding: var(--space-1) var(--space-3);
+  height: 30px;
+  border-radius: calc(var(--radius-md) - 2px);
+  font-size: 12px;
+  font-weight: 500;
+  transition: all var(--transition-interactive);
+  gap: var(--space-1);
+}
+
+.nav-btn:hover {
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+}
+
+.nav-btn.active {
+  background: var(--color-surface);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-xs);
+  font-weight: 600;
+}
+
+.nav-btn svg {
+  opacity: 0.7;
+}
+
+.nav-btn.active svg {
+  opacity: 1;
+}
+
+/* Header actions: cleaner right cluster */
+.header-actions {
+  gap: 3px;
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--color-divider);
+}
+
+/* Icon buttons: tighter, crisper */
+.icon-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-interactive);
+}
+
+.icon-btn:hover {
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  transform: translateY(-1px);
+}
+
+/* Export button: more restrained */
+.export-snapshot-btn {
+  height: 30px;
+  padding: 0 var(--space-3);
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-interactive);
+}
+
+.export-snapshot-btn:hover {
+  background: var(--color-surface-offset);
+  color: var(--color-text);
+  transform: translateY(-1px);
+}
+
+/* Help button: styled as icon-btn */
+.help-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-text-muted);
+  transition: all var(--transition-interactive);
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: var(--font-body);
+}
+
+.help-btn:hover {
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+}
+
+/* Search: cleaner focus ring */
+.search-wrapper {
+  border-radius: var(--radius-md);
+  height: 32px;
+  padding: 0 var(--space-3);
+}
+
+.search-wrapper:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-muted);
+}
+
+/* ── 4. BOT HEADER BUTTON — Sharper, more premium feel ──────── */
+
+.sf-bot-header-btn {
+  height: 30px;
+  padding: 0 var(--space-4);
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  border: none;
+  letter-spacing: 0.01em;
+  transition: all var(--transition-interactive);
+  box-shadow: 0 1px 4px var(--color-primary-dim);
+}
+
+.sf-bot-header-btn:hover {
+  background: var(--color-primary-hover);
+  color: var(--color-text-inverse);
+  box-shadow: 0 3px 10px var(--color-primary-dim);
+  transform: translateY(-1px);
+}
+
+.sf-bot-header-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px var(--color-primary-dim);
+}
+
+/* ── 5. KPI STRIP — Better rhythm, sharper data density ─────── */
+
+.kpi-strip {
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.kpi-card {
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-divider);
+  transition: box-shadow var(--transition-smooth), transform var(--transition-smooth), border-color var(--transition-smooth);
+}
+
+.kpi-card:hover {
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+  border-color: var(--color-border);
+}
+
+.kpi-card::before {
+  height: 2px;
+}
+
+.kpi-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-text-faint);
+  margin-bottom: var(--space-2);
+}
+
+.kpi-value {
+  font-size: clamp(1.4rem, 1.75vw, 1.9rem);
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+}
+
+.kpi-sub {
+  font-size: 10px;
+  color: var(--color-text-faint);
+  margin-top: 3px;
+  line-height: 1.35;
+}
+
+.kpi-delta {
+  font-size: 10px;
+  margin-top: var(--space-1);
+}
+
+/* ── 6. BUILDING CARDS — More generous, cleaner rhythm ───────── */
+
+.buildings-strip {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.building-card {
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-smooth);
+}
+
+.building-card::before {
+  height: 3px;
+}
+
+.building-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+  border-color: transparent;
+}
+
+.building-card-img-wrap {
+  height: 196px;
+}
+
+.building-card-img {
+  height: 196px;
+  filter: brightness(0.48) saturate(0.65) contrast(1.10);
+}
+
+.building-card:hover .building-card-img {
+  transform: scale(1.045);
+  filter: brightness(0.55) saturate(0.70) contrast(1.08);
+}
+
+.building-card-body {
+  padding: var(--space-5) var(--space-5) var(--space-4);
+}
+
+.building-card-name {
+  font-size: var(--text-base);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 3px;
+}
+
+.building-card-zone {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-4);
+}
+
+.building-card-stats {
+  gap: var(--space-2);
+}
+
+.building-stat {
+  padding: var(--space-2) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.building-stat-value {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.building-stat-label {
+  font-size: 8.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-faint);
+  margin-top: 2px;
+}
+
+.building-best-value {
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-primary-border);
+  background: var(--color-primary-muted);
+}
+
+/* ── 7. LISTING CARDS — Crisper hierarchy, score section ─────── */
+
+.listings-grid {
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-4);
+}
+
+.listing-card {
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-smooth);
+}
+
+.listing-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-border);
+}
+
+/* Slightly taller card image */
+.listing-card-media {
+  height: 162px;
+}
+
+.listing-card-img {
+  height: 162px;
+  filter: brightness(0.52) saturate(0.70) contrast(1.06);
+}
+
+.listing-card:hover .listing-card-img {
+  transform: scale(1.02);
+  filter: brightness(0.58) saturate(0.74) contrast(1.05);
+}
+
+/* Better card body rhythm */
+.card-body {
+  padding: var(--space-4) var(--space-5) var(--space-5);
+}
+
+.card-title {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  margin-bottom: 4px;
+}
+
+.card-price-row {
+  margin-bottom: var(--space-3);
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.card-price {
+  font-size: var(--text-base);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+.card-price-unit {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.card-sqm-price {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+/* Card feature pills: tighter, crisper */
+.card-features {
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
+}
+
+.card-feature {
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  gap: 4px;
+  font-size: 10px;
+}
+
+.card-feature-key {
+  font-size: 9.5px;
+  letter-spacing: 0.05em;
+}
+
+/* Score section: better visual structure */
+.card-scores {
+  border-top: 1px solid var(--color-divider);
+  padding-top: var(--space-3);
+  margin-top: var(--space-3);
+  gap: 5px;
+}
+
+.card-score-row {
+  font-size: 11px;
+}
+
+.card-score-bar-track {
+  height: 3px;
+  max-width: 64px;
+  border-radius: 2px;
+}
+
+.card-score-bar-fill {
+  border-radius: 2px;
+}
+
+.card-score-value {
+  font-size: 11px;
+  min-width: 22px;
+}
+
+/* Leverage meter: sharper */
+.leverage-track {
+  height: 4px;
+  border-radius: 2px;
+}
+
+.leverage-meter-label {
+  font-size: 8.5px;
+  letter-spacing: 0.08em;
+}
+
+/* Status badge: tighter */
+.card-status {
+  font-size: 9.5px;
+  padding: 2px var(--space-2);
+  letter-spacing: 0.04em;
+  margin-top: var(--space-2);
+}
+
+/* ── 8. DECISION ENGINE BANNER — Stronger presence ───────────── */
+
+.decision-engine-banner {
+  padding: var(--space-3) var(--space-5);
+  background: var(--color-primary-muted);
+  border: 1px solid var(--color-primary-border);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-3);
+  transition: box-shadow var(--transition-smooth);
+}
+
+.decision-engine-banner:hover {
+  box-shadow: var(--shadow-xs);
+}
+
+.decision-engine-eyebrow {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  white-space: nowrap;
+}
+
+.decision-engine-sep {
+  width: 1px;
+  height: 14px;
+  background: var(--color-primary-dim);
+  flex-shrink: 0;
+}
+
+.decision-engine-summary {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  flex: 1;
+  line-height: 1.4;
+}
+
+.decision-engine-cta {
+  padding: 5px var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: 11px;
+  font-weight: 600;
+  gap: var(--space-1);
+  transition: all var(--transition-interactive);
+}
+
+.decision-engine-cta:hover {
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+}
+
+/* ── 9. OPERATING CONTEXT STRIP — Crisper data row ──────────── */
+
+.operating-context-strip {
+  padding: var(--space-2) var(--space-5);
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+}
+
+.op-context-label {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+}
+
+.op-context-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.op-context-sep {
+  width: 1px;
+  height: 14px;
+  background: var(--color-divider);
+}
+
+/* ── 10. MARKET CHARTS PANEL — Sharper section ───────────────── */
+
+.market-charts-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  margin-bottom: var(--space-5);
+}
+
+.panel-title {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+
+.panel-tab {
+  font-size: 11px;
+  font-weight: 500;
+  padding: var(--space-1) var(--space-3);
+  transition: all var(--transition-interactive);
+  border-radius: calc(var(--radius-md) - 2px);
+}
+
+.panel-tab.active {
+  box-shadow: var(--shadow-xs);
+  font-weight: 600;
+}
+
+/* ── 11. LISTINGS SECTION HEADER — Better visual anchor ─────── */
+
+.listings-section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  padding: 0;
+}
+
+.listings-section-title {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text);
+}
+
+.listings-count {
+  font-size: 11px;
+  color: var(--color-text-faint);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.sort-select {
+  font-size: 11px;
+  padding: 3px var(--space-3) 3px var(--space-2);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  transition: border-color var(--transition-fast);
+  cursor: pointer;
+}
+
+.sort-select:focus {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-primary-muted);
+}
+
+/* ── 12. BOT FAB + PANEL — Premium floating presence ─────────── */
+
+/* FAB: slightly smaller, more refined */
+.sf-bot-fab {
+  bottom: 24px;
+  right: 24px;
+  height: 42px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-full);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.24), 0 1px 4px rgba(0,0,0,0.12);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  transition: all 180ms cubic-bezier(0.16,1,0.3,1);
+}
+
+.sf-bot-fab:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.30), 0 2px 6px rgba(0,0,0,0.14);
+}
+
+/* Bot panel: slightly wider, better proportions */
+.sf-bot-panel {
+  bottom: 80px;
+  right: 24px;
+  width: 440px;
+  border-radius: 14px;
+  border-color: var(--color-border);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.08);
+  transition: opacity 180ms cubic-bezier(0.16,1,0.3,1),
+              transform 180ms cubic-bezier(0.16,1,0.3,1);
+}
+
+[data-theme="dark"] .sf-bot-panel {
+  box-shadow: 0 24px 72px rgba(0,0,0,0.55), 0 6px 16px rgba(0,0,0,0.35);
+}
+
+/* Panel header: more refined */
+.sf-bot-header {
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-4);
+  background: var(--color-surface-2);
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.sf-bot-avatar {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border-radius: 9px;
+}
+
+.sf-bot-header-name {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.sf-bot-header-sub {
+  font-size: 10px;
+  color: var(--color-text-faint);
+  line-height: 1;
+  margin-top: 2px;
+}
+
+/* Bot messages: better spacing */
+.sf-bot-messages {
+  padding: var(--space-4);
+  gap: var(--space-3);
+}
+
+.sf-bot-message {
+  font-size: var(--text-xs);
+  line-height: 1.55;
+  border-radius: var(--radius-lg);
+}
+
+.sf-bot-message--bot {
+  background: var(--color-surface-alt);
+  border-color: var(--color-divider);
+  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px;
+}
+
+.sf-bot-message--user {
+  border-radius: var(--radius-lg) var(--radius-lg) 4px var(--radius-lg);
+}
+
+/* Starter chips: cleaner */
+.sf-bot-starters {
+  padding: var(--space-2) var(--space-4) var(--space-3);
+  gap: var(--space-2);
+}
+
+.sf-bot-starter-chip {
+  font-size: 11px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-interactive);
+}
+
+.sf-bot-starter-chip:hover {
+  border-color: var(--color-primary-dim);
+  color: var(--color-primary);
+  background: var(--color-primary-muted);
+  transform: translateY(-1px);
+}
+
+/* Input row: tighter */
+.sf-bot-input-row {
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  gap: var(--space-2);
+  border-top: 1px solid var(--color-divider);
+  background: var(--color-surface-2);
+}
+
+.sf-bot-input {
+  font-size: var(--text-xs);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  padding: var(--space-2) var(--space-3);
+}
+
+.sf-bot-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-muted);
+  outline: none;
+}
+
+.sf-bot-send-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-interactive);
+}
+
+.sf-bot-send-btn:hover {
+  background: var(--color-primary-hover);
+  transform: scale(1.06);
+}
+
+/* Close button */
+.sf-bot-close-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-interactive);
+}
+
+.sf-bot-close-btn:hover {
+  background: var(--color-surface-offset);
+  transform: rotate(90deg);
+}
+
+/* ── 13. MARKET PULSE BAR — Crisper data line ────────────────── */
+
+.market-pulse-bar {
+  height: 30px;
+  padding: 0 var(--space-6);
+  background: var(--color-surface-alt);
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.pulse-label {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.pulse-stat {
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.data-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ── 14. EVENTS PANEL — Cleaner collapsible ──────────────────── */
+
+.events-panel {
+  margin-bottom: var(--space-5);
+  border-radius: var(--radius-lg);
+}
+
+.events-summary {
+  padding: var(--space-3) var(--space-4);
+  font-size: 11px;
+  font-weight: 600;
+  transition: all var(--transition-interactive);
+}
+
+.events-summary:hover {
+  background: var(--color-surface-alt);
+}
+
+.events-count-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+}
+
+/* ── 15. MAIN CONTENT — Breathing room ───────────────────────── */
+
+.app-main {
+  padding: var(--space-4) var(--space-6) var(--space-8);
+}
+
+/* ── 16. MICRO-INTERACTIONS — Intentional global states ──────── */
+
+/* Focus ring: consistent primary ring across all interactive elements */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Link-style actions: more tactile */
+button:not([disabled]) {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Smooth view transitions */
+.view.active {
+  animation: viewIn 180ms cubic-bezier(0.16,1,0.3,1);
+}
+
+/* Card building badge: slightly more visible */
+.card-building-badge {
+  font-size: 9.5px;
+  padding: 2px 8px;
+  letter-spacing: 0.02em;
+  font-weight: 700;
+}
+
+/* Score bar fills: transition in from 0 */
+.card-score-bar-fill,
+.score-gauge-bar-fill {
+  transition: width 0.6s cubic-bezier(0.16,1,0.3,1);
+}
+
+/* Building badge overlay: light theme contrast */
+[data-theme="light"] .building-card-img-badge {
+  background: rgba(255,255,255,0.92);
+  color: var(--color-text);
+  border-color: rgba(0,0,0,0.10);
+  font-size: 9.5px;
+}
+
+/* Advanced filter: cleaner toggle */
+.adv-filter-summary {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  padding: var(--space-3) var(--space-4);
+  transition: all var(--transition-interactive);
+}
+
+.adv-filter-summary:hover {
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+}
+
+.adv-filter-select,
+.adv-filter-input {
+  font-size: 12px;
+  background: var(--color-bg);
+  border-color: var(--color-divider);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.adv-filter-select:focus,
+.adv-filter-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-muted);
+  outline: none;
+}
+
+/* ── 17. NAV ALERT DOT — tighter, more refined ───────────────── */
+
+.nav-alert-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-error);
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  animation: pulsate 2s ease-in-out infinite;
+}
+
+/* ── 18. DARK MODE REFINEMENTS ────────────────────────────────── */
+
+[data-theme="dark"] .app-header {
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+  border-bottom-color: var(--color-divider);
+}
+
+[data-theme="dark"] .header-nav {
+  background: var(--color-surface-2);
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .nav-btn.active {
+  background: var(--color-surface-2);
+}
+
+[data-theme="dark"] .sf-bot-header-btn {
+  background: var(--color-primary);
+  color: var(--color-bg);
+}
+
+[data-theme="dark"] .sf-bot-header-btn:hover {
+  background: var(--color-primary-hover);
+}
+
+[data-theme="dark"] .filter-chip.active {
+  box-shadow: 0 1px 8px rgba(74,168,173,0.35);
+}
+
+[data-theme="dark"] .kpi-card:hover {
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .listing-card:hover,
+[data-theme="dark"] .building-card:hover {
+  border-color: var(--color-border);
+}
+
+/* ── 19. SCROLLBAR — Refined ─────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-faint);
+}
+
+/* ── 20. VIEW HEADER — Proper min-height + alignment ─────────── */
+
+.view-header {
+  margin-bottom: var(--space-4);
+  gap: var(--space-3);
+  align-items: flex-start;
+}

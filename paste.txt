@@ -1,0 +1,1463 @@
+Correct. You do not want separate HTML/CSS instructions. You want the actual single-file bot.js version with everything merged into the file that matters.
+
+Below is a drop-in replacement for your existing bot.js. It keeps the original architecture, injects its own styles, adds:
+	•	header avatar
+	•	voice toggle
+	•	speech synthesis
+	•	speaking mouth animation
+	•	thinking state
+	•	active/idle state
+	•	listing-intelligence states:
+	•	normal
+	•	negotiating
+	•	high-risk
+	•	high-confidence
+
+This version does not require changes to style.css or HTML templates.
+
+Replace your current bot.js with this:
+
+// ══════════════════════════════════════════════════════════════
+//  Santa Fe CI — In-App Question Bot  (bot.js)
+//  Single-file enhanced version
+//  - Interactive avatar
+//  - Voice synthesis
+//  - Mouth animation while speaking
+//  - Avatar state logic
+//  - No external CSS required
+// ══════════════════════════════════════════════════════════════
+
+'use strict';
+
+(function SantaFeBot() {
+
+  // ── Constants ─────────────────────────────────────────────────
+  var BOT_NAME   = 'SF·CI Intelligence';
+  var BOT_INTRO  = 'Hola. Soy el asistente de inteligencia de Santa Fe CI. Pregúntame sobre precios, oportunidades, torres o cualquier unidad cargada.';
+
+  var STARTER_PROMPTS = [
+    '¿Cuál es la mejor oportunidad ahora?',
+    '¿Qué unidades son negociables?',
+    '¿Cuál torre tiene el mayor $/m²?',
+    '¿Cuál es el precio mediano del mercado?',
+    '¿Qué unidades llevan más días en mercado?',
+    '¿Cuál es el resumen de confianza/riesgo?',
+  ];
+
+  // ── Runtime state ─────────────────────────────────────────────
+  var panelOpen        = false;
+  var messages         = [];
+  var botVoiceEnabled  = true;
+  var botUtterance     = null;
+  var botSpeaking      = false;
+  var botThinking      = false;
+
+  // ── Helpers ───────────────────────────────────────────────────
+  function fmtN(n) {
+    if (n == null) return '—';
+    return Number(n).toLocaleString('es-MX');
+  }
+
+  function pct(n) {
+    if (n == null) return '—';
+    var v = parseFloat(n);
+    return (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
+  }
+
+  function buildingName(key) {
+    var names = {
+      peninsula: 'Península Santa Fe',
+      torre300: 'Torre 300',
+      paradox: 'Paradox Santa Fe'
+    };
+    return names[key] || key;
+  }
+
+  function statusLabel(key) {
+    var labels = {
+      negotiate:  'Negociar ahora',
+      fast_move:  'Mover rápido',
+      verify:     'Verificar primero',
+      watch:      'Monitorear',
+      avoid:      'Evitar',
+    };
+    return labels[key] || key;
+  }
+
+  function matchAny(q, terms) {
+    return terms.some(function(t) { return q.includes(t); });
+  }
+
+  function escH(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+
+  function botCell(label, value) {
+    return '<div class="bot-cell"><div class="bot-cell-label">' + escH(String(label)) + '</div><div class="bot-cell-value">' + escH(String(value)) + '</div></div>';
+  }
+
+  // ── Data accessors ────────────────────────────────────────────
+  function getListings()       { return (window.listingsData   || []); }
+  function getMarketSummary()  { return (window.marketSummary  || {}); }
+  function getTowerSummary()   { return (window.towerSummary   || {}); }
+  function getCurrentListing() { return window.currentListing  || null; }
+
+  // ── Avatar state engine ───────────────────────────────────────
+  function setAvatarState(state) {
+    var avatar = document.querySelector('.sf-bot-avatar');
+    if (!avatar) return;
+
+    avatar.classList.remove(
+      'sf-bot-avatar--idle',
+      'sf-bot-avatar--active',
+      'sf-bot-avatar--thinking',
+      'sf-bot-avatar--speaking',
+      'sf-bot-avatar--normal',
+      'sf-bot-avatar--negotiating',
+      'sf-bot-avatar--high-risk',
+      'sf-bot-avatar--high-confidence'
+    );
+
+    avatar.classList.add('sf-bot-avatar--' + state);
+  }
+
+  function syncAvatarState() {
+    if (botSpeaking) {
+      setAvatarState('speaking');
+      return;
+    }
+    if (botThinking) {
+      setAvatarState('thinking');
+      return;
+    }
+    if (panelOpen) {
+      setAvatarState('active');
+      return;
+    }
+    setAvatarState('idle');
+  }
+
+  function applyListingAvatarState(listing) {
+    if (botSpeaking || botThinking) {
+      syncAvatarState();
+      return;
+    }
+
+    if (!listing || !listing.intel) {
+      setAvatarState(panelOpen ? 'active' : 'idle');
+      return;
+    }
+
+    var scores = listing.intel.scores || {};
+    var status = (listing.intel.status || {}).key || '';
+
+    if ((scores.ghost_probability || 0) > 40) {
+      setAvatarState('high-risk');
+      return;
+    }
+
+    if ((scores.confidence_score || 0) >= 70) {
+      setAvatarState('high-confidence');
+      return;
+    }
+
+    if (status === 'negotiate') {
+      setAvatarState('negotiating');
+      return;
+    }
+
+    setAvatarState('normal');
+  }
+
+  // ── Speech engine ─────────────────────────────────────────────
+  function stopBotSpeech() {
+    try {
+      window.speechSynthesis.cancel();
+    } catch (e) {}
+    botSpeaking = false;
+    syncAvatarState();
+    applyListingAvatarState(getCurrentListing());
+  }
+
+  function getBotVoice() {
+    var voices = window.speechSynthesis.getVoices() || [];
+
+    var preferred = voices.find(function(v) {
+      return /es(-|_)?MX/i.test(v.lang);
+    });
+    if (preferred) return preferred;
+
+    preferred = voices.find(function(v) {
+      return /^es/i.test(v.lang);
+    });
+    if (preferred) return preferred;
+
+    return voices[0] || null;
+  }
+
+  function stripHtmlForSpeech(html) {
+    var div = document.createElement('div');
+    div.innerHTML = html;
+    return (div.textContent || div.innerText || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function speakBotResponse(html) {
+    if (!botVoiceEnabled) return;
+    if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') return;
+
+    var text = stripHtmlForSpeech(html);
+    if (!text) return;
+
+    stopBotSpeech();
+
+    var utterance = new SpeechSynthesisUtterance(text);
+    var voice = getBotVoice();
+
+    if (voice) utterance.voice = voice;
+    utterance.lang = voice && voice.lang ? voice.lang : 'es-MX';
+    utterance.rate = 1;
+    utterance.pitch = 1;
+
+    utterance.onstart = function() {
+      botSpeaking = true;
+      syncAvatarState();
+    };
+
+    utterance.onend = function() {
+      botSpeaking = false;
+      syncAvatarState();
+      applyListingAvatarState(getCurrentListing());
+    };
+
+    utterance.onerror = function() {
+      botSpeaking = false;
+      syncAvatarState();
+      applyListingAvatarState(getCurrentListing());
+    };
+
+    botUtterance = utterance;
+    window.speechSynthesis.speak(utterance);
+  }
+
+  // ── Answer engine ─────────────────────────────────────────────
+  function answer(rawQ) {
+    var q = rawQ.toLowerCase().trim();
+    var listings = getListings();
+    var ms = getMarketSummary();
+    var ts = getTowerSummary();
+
+    if (!listings.length) {
+      return 'Los datos aún están cargando. Intenta de nuevo en un momento.';
+    }
+
+    var activeListing = getCurrentListing();
+    if (activeListing && (
+      q.includes('esta unidad') || q.includes('este listado') ||
+      q.includes('la unidad abierta') || q.includes('unidad actual') ||
+      q.includes('este depa') || q.includes('este apartamento')
+    )) {
+      return answerCurrentListing(activeListing);
+    }
+
+    var idMatch = rawQ.match(/\bsf[_-]?(\d+)\b/i);
+    if (idMatch) {
+      var lid = 'sf_' + idMatch[1].padStart(3, '0');
+      var found = listings.find(function(l){ return l.id.toLowerCase() === lid.toLowerCase(); });
+      if (found) return answerCurrentListing(found);
+      return 'No encontré la unidad <strong>' + lid + '</strong> en los datos actuales.';
+    }
+
+    if (matchAny(q, ['mejor oportunidad', 'mejor listado', 'mejor unidad', 'top', 'mejor opción', 'recomienda', 'recomend'])) {
+      return answerBestOpportunity(listings, ms, ts);
+    }
+
+    if (matchAny(q, ['negoci', 'negotiate', 'para negociar', 'negociables'])) {
+      return answerNegotiable(listings, ms);
+    }
+
+    if (matchAny(q, ['mayor $/m²', 'mayor psm', 'más caro por m', 'price per sqm', '$/m²', 'precio por m', 'psm', 'mayor precio m2', 'precio m2'])) {
+      return answerTowerPsm(ts);
+    }
+
+    if (matchAny(q, ['mediana', 'precio mediano', 'median', 'precio promedio', 'promedio', 'precio medio', 'average'])) {
+      return answerMedian(ms, ts);
+    }
+
+    if (matchAny(q, ['días', 'dias', 'mercado', 'dom', 'tiempo', 'cuánto tiempo', 'cuanto tiempo', 'más antiguo', 'mas antiguo', 'mayor dom'])) {
+      return answerDOM(listings);
+    }
+
+    if (matchAny(q, ['confianza', 'riesgo', 'confidence', 'risk', 'ghost', 'score', 'composite', 'calidad', 'resumen'])) {
+      return answerConfidenceRisk(listings, ms);
+    }
+
+    if (matchAny(q, ['torre', 'tower', 'península', 'peninsula', 'paradox', 'torre 300', 'torre300', 'comparar torres', 'comparación'])) {
+      return answerTowerComparison(ts);
+    }
+
+    if (matchAny(q, ['precio', 'price', 'costo', 'cuesta', 'renta', 'rent', 'más barato', 'mas barato', 'más caro', 'mas caro', 'barato', 'caro'])) {
+      return answerPriceRange(listings, ms);
+    }
+
+    if (matchAny(q, ['cuántos', 'cuantos', 'total', 'universo', 'listados', 'disponibles', 'activos', 'how many'])) {
+      return answerSupply(listings, ms);
+    }
+
+    if (matchAny(q, ['rápido', 'rapido', 'fast', 'urgente', 'mover rápido', 'fast move'])) {
+      return answerFastMove(listings, ms);
+    }
+
+    if (activeListing) {
+      return answerCurrentListing(activeListing);
+    }
+
+    return answerMarketSnapshot(listings, ms, ts);
+  }
+
+  // ── Answer builders ───────────────────────────────────────────
+  function answerBestOpportunity(listings, ms, ts) {
+    var sorted = listings.slice().sort(function(a, b) {
+      var sa = ((a.intel || {}).scores || {}).composite_score || 0;
+      var sb = ((b.intel || {}).scores || {}).composite_score || 0;
+      if (sb !== sa) return sb - sa;
+      var la = ((a.intel || {}).scores || {}).leverage_score || 0;
+      var lb = ((b.intel || {}).scores || {}).leverage_score || 0;
+      return lb - la;
+    });
+
+    var best = sorted[0];
+    if (!best) return 'No hay datos de listados.';
+
+    var scores  = (best.intel || {}).scores || {};
+    var pricing = (best.intel || {}).pricing || {};
+    var status  = (best.intel || {}).status || {};
+
+    var html = '<div class="bot-answer-section">';
+    html += '<div class="bot-answer-label">Mejor oportunidad</div>';
+    html += '<div class="bot-answer-highlight">' + escH(best.title || best.id) + '</div>';
+    html += '<div class="bot-answer-meta">' + buildingName(best.building) + ' · ' + escH(best.id) + '</div>';
+    html += '</div>';
+
+    html += '<div class="bot-answer-grid">';
+    html += botCell('Renta mensual', '$' + fmtN(best.price) + ' MXN');
+    html += botCell('$/m²', '$' + fmtN(best.price_per_sqm));
+    html += botCell('Composite score', scores.composite_score || '—');
+    html += botCell('Leverage score', scores.leverage_score || '—');
+    if (pricing.opening_anchor) html += botCell('Ancla de apertura', '$' + fmtN(pricing.opening_anchor));
+    if (pricing.target_close) html += botCell('Cierre objetivo', '$' + fmtN(pricing.target_close));
+    html += '</div>';
+
+    if (status.label) {
+      html += '<div class="bot-answer-badge bot-badge-' + escH(status.key || 'neutral') + '">' + escH(status.label) + '</div>';
+    }
+
+    html += '<div class="bot-answer-section" style="margin-top:var(--space-3)">';
+    html += '<div class="bot-answer-label">Top 3 por score</div>';
+    html += '<table class="bot-table"><thead><tr><th>ID</th><th>Torre</th><th>Score</th><th>$/m²</th><th>Estado</th></tr></thead><tbody>';
+    sorted.slice(0, 3).forEach(function(l) {
+      var sc = ((l.intel || {}).scores || {}).composite_score || 0;
+      var st = ((l.intel || {}).status || {}).key || '';
+      html += '<tr>' +
+        '<td class="bot-mono">' + escH(l.id) + '</td>' +
+        '<td>' + buildingName(l.building) + '</td>' +
+        '<td class="bot-mono">' + sc + '</td>' +
+        '<td class="bot-mono">$' + fmtN(l.price_per_sqm) + '</td>' +
+        '<td><span class="bot-badge-inline bot-badge-' + escH(st) + '">' + escH(statusLabel(st)) + '</span></td>' +
+        '</tr>';
+    });
+    html += '</tbody></table></div>';
+
+    return html;
+  }
+
+  function answerNegotiable(listings, ms) {
+    var neg = listings.filter(function(l) {
+      return ((l.intel || {}).status || {}).key === 'negotiate';
+    });
+
+    var html = '<div class="bot-answer-section">';
+    html += '<div class="bot-answer-label">Unidades negociables</div>';
+    html += '<div class="bot-answer-highlight">' + neg.length + ' de ' + listings.length + ' listados</div>';
+    html += '</div>';
+
+    if (!neg.length) {
+      return html + '<p style="color:var(--color-text-muted)">Sin unidades con señal clara de negociación en los datos actuales.</p>';
+    }
+
+    html += '<table class="bot-table"><thead><tr><th>ID</th><th>Torre</th><th>Precio</th><th>$/m²</th><th>Ancla apertura</th></tr></thead><tbody>';
+    neg.slice(0, 8).forEach(function(l) {
+      var pricing = (l.intel || {}).pricing || {};
+      html += '<tr>' +
+        '<td class="bot-mono">' + escH(l.id) + '</td>' +
+        '<td>' + buildingName(l.building) + '</td>' +
+        '<td class="bot-mono">$' + fmtN(l.price) + '</td>' +
+        '<td class="bot-mono">$' + fmtN(l.price_per_sqm) + '</td>' +
+        '<td class="bot-mono">' + (pricing.opening_anchor ? '$' + fmtN(pricing.opening_anchor) : '—') + '</td>' +
+        '</tr>';
+    });
+    html += '</tbody></table>';
+    return html;
+  }
+
+  function answerTowerPsm(ts) {
+    var towers = Object.keys(ts).map(function(k) {
+      return {
+        key: k,
+        name: buildingName(k),
+        psm: ts[k].median_price_per_sqm || 0,
+        count: ts[k].count || 0,
+        best: ts[k].best_value_id
+      };
+    }).sort(function(a, b) { return b.psm - a.psm; });
+
+    if (!towers.length) return 'No hay datos de torres.';
+
+    var top = towers[0];
+    var html = '<div class="bot-answer-section">';
+    html += '<div class="bot-answer-label">Torre con mayor $/m² mediano</div>';
+    html += '<div class="bot-answer-highlight">' + top.name + '</div>';
+    html += '<div class="bot-answer-meta">$' + fmtN(top.psm) + '/m² · ' + top.count + ' listados' + (top.best ? ' · Mejor valor: ' + top.best : '') + '</div>';
+    html += '</div>';
+
+    html += '<table class="bot-table"><thead><tr><th>Torre</th><th>$/m² mediano</th><th>Listados</th><th>Mejor valor</th></tr></thead><tbody>';
+    towers.forEach(function(t) {
+      html += '<tr>' +
+        '<td>' + t.name + '</td>' +
+        '<td class="bot-mono">$' + fmtN(t.psm) + '</td>' +
+        '<td class="bot-mono">' + t.count + '</td>' +
+        '<td class="bot-mono">' + (t.best || '—') + '</td>' +
+        '</tr>';
+    });
+    html += '</tbody></table>';
+    return html;
+  }
+
+  function answerMedian(ms, ts) {
+    var html = '<div class="bot-answer-section">';
+    html += '<div class="bot-answer-label">Precio mediano del mercado</div>';
+    html += '<div class="bot-answer-highlight">$' + fmtN(ms.median_price) + ' MXN/mes</div>';
+    html += '<div class="bot-answer-meta">$/m² mediano: $' + fmtN(ms.median_price_per_sqm) + '</div>';
+    html += '</div>';
+
+    html += '<div class="bot-answer-grid">';
+    html += botCell('Precio promedio', '$' + fmtN(ms.avg_price));
+    html += botCell('$/m² promedio', '$' + fmtN(ms.avg_price_per_sqm));
+    html += botCell('Total listados', ms.total_listings || 0);
+    html += botCell('Negociables', ms.negotiate_count || 0);
+    html += '</div>';
+
+    html += '<div class="bot-answer-section" style="margin-top:var(--space-3)">';
+    html += '<div class="bot-answer-label">Por torre</div>';
+    html += '<table class="bot-table"><thead><tr><th>Torre</th><th>Med. precio</th><th>Med. $/m²</th></tr></thead><tbody>';
+    Object.keys(ts).forEach(function(k) {
+      var t = ts[k];
+      html += '<tr>' +
+        '<td>' + buildingName(k) + '</td>' +
+        '<td class="bot-mono">$' + fmtN(t.median_price) + '</td>' +
+        '<td class="bot-mono">$' + fmtN(t.median_price_per_sqm) + '</td>' +
+        '</tr>';
+    });
+    html += '</tbody></table></div>';
+    return html;
+  }
+
+  function answerDOM(listings) {
+    var sorted = listings.slice().sort(function(a, b) {
+      return (b.days_on_market || 0) - (a.days_on_market || 0);
+    });
+
+    var maxDom = sorted[0] ? (sorted[0].days_on_market || 0) : 0;
+    var avgDom = listings.length
+      ? Math.round(listings.reduce(function(s, l) { return s + (l.days_on_market || 0); }, 0) / listings.length)
+      : 0;
+    var over30 = listings.filter(function(l) { return (l.days_on_market || 0) > 30; }).length;
+    var over60 = listings.filter(function(l) { return (l.days_on_market || 0) > 60; }).length;
+
+    var html = '<div class="bot-answer-section">';
+    html += '<div class="bot-answer-label">Días en mercado (DOM)</div>';
+    html += '</div>';
+    html += '<div class="bot-answer-grid">';
+    html += botCell('Mayor DOM', maxDom + 'd');
+    html += botCell('DOM promedio', avgDom + 'd');
+    html += botCell('>30 días', over30);
+    html += botCell('>60 días', over60);
+    html += '</div>';
+
+    html += '<div class="bot-answer-section" style="margin-top:var(--space-3)">';
+    html += '<div class="bot-answer-label">Listados por DOM (descendente)</div>';
+    html += '<table class="bot-table"><thead><tr><th>ID</th><th>Torre</th><th>DOM</th><th>Precio</th><th>Estado</th></tr></thead><tbody>';
+    sorted.slice(0, 6).forEach(function(l) {
+      var st = ((l.intel || {}).status || {}).key || '';
+      html += '<tr>' +
+        '<td class="bot-mono">' + escH(l.id) + '</td>' +
+        '<td>' + buildingName(l.building) + '</td>' +
+        '<td class="bot-mono">' + (l.days_on_market || 0) + 'd</td>' +
+        '<td class="bot-mono">$' + fmtN(l.price) + '</td>' +
+        '<td><span class="bot-badge-inline bot-badge-' + escH(st) + '">' + escH(statusLabel(st)) + '</span></td>' +
+        '</tr>';
+    });
+    html += '</tbody></table></div>';
+    return html;
+  }
+
+  function answerConfidenceRisk(listings, ms) {
+    var scored = listings.map(function(l) {
+      var scores = (l.intel || {}).scores || {};
+      return {
+        id:          l.id,
+        building:    l.building,
+        composite:   scores.composite_score || 0,
+        confidence:  scores.confidence_score || 0,
+        ghost:       scores.ghost_probability || 0,
+        leverage:    scores.leverage_score || 0,
+        status:      ((l.intel || {}).status || {}).key || '',
+      };
+    });
+
+    var avgConf = Math.round(scored.reduce(function(s, l) { return s + l.confidence; }, 0) / (scored.length || 1));
+    var avgComp = Math.round(scored.reduce(function(s, l) { return s + l.composite; }, 0) / (scored.length || 1));
+    var highGhost = scored.filter(function(l) { return l.ghost > 40; }).length;
+    var highConf  = scored.filter(function(l) { return l.confidence >= 70; }).length;
+
+    var html = '<div class="bot-answer-section">';
+    html += '<div class="bot-answer-label">Resumen confianza / riesgo</div>';
+    html += '</div>';
+    html += '<div class="bot-answer-grid">';
+    html += botCell('Confianza promedio', avgConf + '/100');
+    html += botCell('Score compuesto prom.', avgComp + '/100');
+    html += botCell('Alta confianza (≥70)', highConf);
+    html += botCell('Alto ghost risk (>40)', highGhost);
+    html += '</div>';
+
+    html += '<div class="bot-answer-section" style="margin-top:var(--space-3)">';
+    html += '<div class="bot-answer-label">Detalle por unidad</div>';
+    html += '<table class="bot-table"><thead><tr><th>ID</th><th>Confianza</th><th>Composite</th><th>Ghost %</th><th>Estado</th></tr></thead><tbody>';
+    scored.slice().sort(function(a, b) { return b.confidence - a.confidence; }).slice(0, 8).forEach(function(l) {
+      var confClass = l.confidence >= 70 ? 'color:var(--color-success)' : l.confidence < 50 ? 'color:var(--color-warning)' : '';
+      html += '<tr>' +
+        '<td class="bot-mono">' + escH(l.id) + '</td>' +
+        '<td class="bot-mono" style="' + confClass + '">' + l.confidence + '</td>' +
+        '<td class="bot-mono">' + l.composite + '</td>' +
+        '<td class="bot-mono">' + l.ghost + '%</td>' +
+        '<td><span class="bot-badge-inline bot-badge-' + escH(l.status) + '">' + escH(statusLabel(l.status)) + '</span></td>' +
+        '</tr>';
+    });
+    html += '</tbody></table></div>';
+
+    if (ms.high_risk && ms.high_risk.length) {
+      html += '<div class="bot-answer-section" style="margin-top:var(--space-3)">';
+      html += '<div class="bot-answer-label" style="color:var(--color-warning)">Alto riesgo (señalados por motor)</div>';
+      html += '<div style="font-size:var(--text-xs);color:var(--color-text-muted)">' + ms.high_risk.join(', ') + '</div>';
+      html += '</div>';
+    }
+
+    return html;
+  }
+
+  function answerTowerComparison(ts) {
+    var html = '<div class="bot-answer-section">';
+    html += '<div class="bot-answer-label">Comparación de torres</div>';
+    html += '</div>';
+    html += '<table class="bot-table"><thead><tr><th>Torre</th><th>Listados</th><th>Med. precio</th><th>$/m²</th><th>Med. DOM</th><th>Mejor valor</th></tr></thead><tbody>';
+    Object.keys(ts).forEach(function(k) {
+      var t = ts[k];
+      html += '<tr>' +
+        '<td>' + buildingName(k) + '</td>' +
+        '<td class="bot-mono">' + (t.count || 0) + '</td>' +
+        '<td class="bot-mono">$' + fmtN(t.median_price) + '</td>' +
+        '<td class="bot-mono">$' + fmtN(t.median_price_per_sqm) + '</td>' +
+        '<td class="bot-mono">' + (t.median_days_on_market || 0) + 'd</td>' +
+        '<td class="bot-mono">' + (t.best_value_id || '—') + '</td>' +
+        '</tr>';
+    });
+    html += '</tbody></table>';
+    return html;
+  }
+
+  function answerPriceRange(listings, ms) {
+    var prices = listings.map(function(l) { return l.price || 0; }).sort(function(a,b){ return a-b; });
+    var minP = prices[0] || 0;
+    var maxP = prices[prices.length - 1] || 0;
+    var cheapest = listings.slice().sort(function(a, b) { return (a.price||0) - (b.price||0); })[0];
+    var priciest = listings.slice().sort(function(a, b) { return (b.price||0) - (a.price||0); })[0];
+
+    var html = '<div class="bot-answer-section">';
+    html += '<div class="bot-answer-label">Rango de precios</div>';
+    html += '<div class="bot-answer-highlight">$' + fmtN(minP) + ' — $' + fmtN(maxP) + ' MXN/mes</div>';
+    html += '<div class="bot-answer-meta">Mediana: $' + fmtN(ms.median_price) + ' · Promedio: $' + fmtN(ms.avg_price) + '</div>';
+    html += '</div>';
+
+    html += '<div class="bot-answer-grid">';
+    if (cheapest) html += botCell('Más barato (' + cheapest.id + ')', '$' + fmtN(cheapest.price));
+    if (priciest) html += botCell('Más caro (' + priciest.id + ')', '$' + fmtN(priciest.price));
+    html += botCell('$/m² mediano', '$' + fmtN(ms.median_price_per_sqm));
+    html += botCell('$/m² promedio', '$' + fmtN(ms.avg_price_per_sqm));
+    html += '</div>';
+
+    return html;
+  }
+
+  function answerSupply(listings, ms) {
+    var byBuilding = {};
+    listings.forEach(function(l) {
+      byBuilding[l.building] = (byBuilding[l.building] || 0) + 1;
+    });
+
+    var html = '<div class="bot-answer-section">';
+    html += '<div class="bot-answer-label">Universo de listados</div>';
+    html += '<div class="bot-answer-highlight">' + listings.length + ' activos</div>';
+    html += '</div>';
+    html += '<div class="bot-answer-grid">';
+    Object.keys(byBuilding).forEach(function(k) {
+      html += botCell(buildingName(k), byBuilding[k]);
+    });
+    html += botCell('Negociables', ms.negotiate_count || 0);
+    html += botCell('Mover rápido', ms.fast_move_count || 0);
+    html += botCell('Verificar', ms.verify_first_count || 0);
+    html += '</div>';
+
+    return html;
+  }
+
+  function answerFastMove(listings, ms) {
+    var fm = listings.filter(function(l) {
+      var st = ((l.intel || {}).status || {}).key || '';
+      return st === 'fast_move';
+    });
+
+    var html = '<div class="bot-answer-section">';
+    html += '<div class="bot-answer-label">Mover rápido</div>';
+    html += '<div class="bot-answer-highlight">' + fm.length + ' unidades</div>';
+    html += '</div>';
+
+    if (!fm.length) {
+      return html + '<p style="color:var(--color-text-muted)">Ninguna unidad tiene señal "mover rápido" en los datos actuales.</p>';
+    }
+
+    html += '<table class="bot-table"><thead><tr><th>ID</th><th>Torre</th><th>Precio</th><th>DOM</th></tr></thead><tbody>';
+    fm.forEach(function(l) {
+      html += '<tr>' +
+        '<td class="bot-mono">' + escH(l.id) + '</td>' +
+        '<td>' + buildingName(l.building) + '</td>' +
+        '<td class="bot-mono">$' + fmtN(l.price) + '</td>' +
+        '<td class="bot-mono">' + (l.days_on_market || 0) + 'd</td>' +
+        '</tr>';
+    });
+    html += '</tbody></table>';
+
+    return html;
+  }
+
+  function answerCurrentListing(l) {
+    if (!l) return 'No hay una unidad abierta actualmente.';
+
+    var scores  = (l.intel || {}).scores  || {};
+    var pricing = (l.intel || {}).pricing || {};
+    var status  = (l.intel || {}).status  || {};
+
+    var html = '<div class="bot-answer-section">';
+    html += '<div class="bot-answer-label">Unidad abierta</div>';
+    html += '<div class="bot-answer-highlight">' + escH(l.title || l.id) + '</div>';
+    html += '<div class="bot-answer-meta">' + buildingName(l.building) + ' · ' + escH(l.id) + '</div>';
+    html += '</div>';
+
+    html += '<div class="bot-answer-grid">';
+    html += botCell('Precio', '$' + fmtN(l.price) + ' MXN');
+    html += botCell('$/m²', '$' + fmtN(l.price_per_sqm));
+    html += botCell('m²', l.sqm);
+    html += botCell('Recámaras', l.beds);
+    html += botCell('DOM', (l.days_on_market || 0) + 'd');
+    html += botCell('Amueblado', l.furnished ? 'Sí' : 'No');
+    html += '</div>';
+
+    html += '<div class="bot-answer-section" style="margin-top:var(--space-3)">';
+    html += '<div class="bot-answer-label">Scores</div>';
+    html += '<div class="bot-answer-grid">';
+    html += botCell('Composite', scores.composite_score || '—');
+    html += botCell('Leverage', scores.leverage_score || '—');
+    html += botCell('Confianza', scores.confidence_score || '—');
+    html += botCell('Ghost %', scores.ghost_probability != null ? scores.ghost_probability + '%' : '—');
+    html += '</div></div>';
+
+    if (pricing.opening_anchor) {
+      html += '<div class="bot-answer-section" style="margin-top:var(--space-3)">';
+      html += '<div class="bot-answer-label">Banda de negociación</div>';
+      html += '<div class="bot-answer-grid">';
+      html += botCell('Ancla apertura', '$' + fmtN(pricing.opening_anchor));
+      html += botCell('Cierre objetivo', '$' + fmtN(pricing.target_close));
+      html += botCell('Fair low', '$' + fmtN(pricing.fair_low));
+      html += botCell('Walk away', '$' + fmtN(pricing.walk_away));
+      html += '</div></div>';
+    }
+
+    if (status.label) {
+      html += '<div class="bot-answer-badge bot-badge-' + escH(status.key || 'neutral') + '" style="margin-top:var(--space-3)">' + escH(status.label) + '</div>';
+    }
+
+    if (pricing.delta_to_peer_psqm_pct != null) {
+      var delta = parseFloat(pricing.delta_to_peer_psqm_pct);
+      var cls   = delta < 0 ? 'color:var(--color-success)' : 'color:var(--color-warning)';
+      html += '<div style="font-size:var(--text-xs);color:var(--color-text-muted);margin-top:var(--space-2)">';
+      html += 'Δ vs. peer group: <span style="' + cls + ';font-family:var(--font-mono)">' + pct(delta) + '</span>';
+      html += '</div>';
+    }
+
+    return html;
+  }
+
+  function answerMarketSnapshot(listings, ms, ts) {
+    var neg   = ms.negotiate_count || 0;
+    var total = ms.total_listings || listings.length;
+
+    var html = '<div class="bot-answer-section">';
+    html += '<div class="bot-answer-label">Snapshot del mercado · Abril 2026</div>';
+    html += '</div>';
+    html += '<div class="bot-answer-grid">';
+    html += botCell('Total listados', total);
+    html += botCell('Precio mediano', '$' + fmtN(ms.median_price));
+    html += botCell('$/m² mediano', '$' + fmtN(ms.median_price_per_sqm));
+    html += botCell('Negociables', neg);
+    html += '</div>';
+    html += '<div style="font-size:var(--text-xs);color:var(--color-text-muted);margin-top:var(--space-3)">';
+    html += 'Pregúntame sobre precios, oportunidades, torres, días en mercado, unidades negociables o confianza/riesgo.';
+    html += '</div>';
+
+    return html;
+  }
+
+  // ── CSS injection ─────────────────────────────────────────────
+  function injectBotStyles() {
+    if (document.getElementById('sfBotInjectedStyles')) return;
+
+    var style = document.createElement('style');
+    style.id = 'sfBotInjectedStyles';
+    style.textContent = `
+      :root {
+        --sf-bg-1: #0b1220;
+        --sf-bg-2: #121a2c;
+        --sf-line: rgba(255,255,255,0.10);
+        --sf-text: #e8edf7;
+        --sf-muted: #95a3bf;
+        --sf-blue: #60a5fa;
+        --sf-green: #22c55e;
+        --sf-amber: #f59e0b;
+        --sf-red: #ef4444;
+        --sf-white: #ffffff;
+        --sf-shadow: 0 18px 50px rgba(0,0,0,0.35);
+        --space-1: 4px;
+        --space-2: 8px;
+        --space-3: 12px;
+        --space-4: 16px;
+        --space-5: 20px;
+        --text-xs: 12px;
+        --text-sm: 13px;
+        --text-md: 14px;
+        --text-lg: 16px;
+        --radius-sm: 10px;
+        --radius-md: 14px;
+        --radius-lg: 18px;
+      }
+
+      .sf-bot-fab {
+        position: fixed;
+        right: 20px;
+        bottom: 20px;
+        z-index: 9999;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        border: 0;
+        padding: 12px 14px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #111827, #0b1220);
+        color: #fff;
+        box-shadow: var(--sf-shadow);
+        cursor: pointer;
+      }
+
+      .sf-bot-fab-label {
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .sf-bot-fab--active {
+        box-shadow: 0 0 0 1px rgba(96,165,250,0.25), 0 0 18px rgba(96,165,250,0.35), var(--sf-shadow);
+      }
+
+      .sf-bot-panel {
+        position: fixed;
+        right: 20px;
+        bottom: 80px;
+        width: min(420px, calc(100vw - 24px));
+        height: min(650px, calc(100vh - 120px));
+        background: linear-gradient(180deg, var(--sf-bg-2), var(--sf-bg-1));
+        color: var(--sf-text);
+        border-radius: 20px;
+        border: 1px solid var(--sf-line);
+        box-shadow: var(--sf-shadow);
+        z-index: 9999;
+        display: none;
+        overflow: hidden;
+      }
+
+      .sf-bot-panel--open {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .sf-bot-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--sf-line);
+      }
+
+      .sf-bot-header-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .sf-bot-header-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .sf-bot-header-name {
+        font-size: 14px;
+        font-weight: 800;
+        line-height: 1.2;
+      }
+
+      .sf-bot-header-sub {
+        font-size: 12px;
+        color: var(--sf-muted);
+        line-height: 1.2;
+        margin-top: 2px;
+      }
+
+      .sf-bot-avatar {
+        position: relative;
+        width: 42px;
+        height: 42px;
+        min-width: 42px;
+        border-radius: 12px;
+        overflow: hidden;
+        background: linear-gradient(135deg, #0a0f1c, #111827);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: box-shadow 180ms ease, border-color 180ms ease, transform 180ms ease, opacity 180ms ease;
+        border: 1px solid rgba(255,255,255,0.08);
+      }
+
+      .sf-bot-avatar-face {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background:
+          radial-gradient(circle at 50% 18%, rgba(255,255,255,0.18), transparent 28%),
+          linear-gradient(180deg, #13203b 0%, #0c1425 100%);
+      }
+
+      .sf-bot-avatar-helmet {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 50% 40%, rgba(96,165,250,0.12), transparent 42%),
+          linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.00));
+      }
+
+      .sf-bot-avatar-eyes {
+        position: absolute;
+        top: 13px;
+        left: 11px;
+        right: 11px;
+        display: flex;
+        justify-content: space-between;
+        pointer-events: none;
+      }
+
+      .sf-bot-avatar-eye {
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: #8ec5ff;
+        box-shadow: 0 0 8px rgba(142,197,255,0.9);
+      }
+
+      .sf-bot-avatar-mouth {
+        position: absolute;
+        left: 50%;
+        bottom: 9px;
+        width: 10px;
+        height: 4px;
+        margin-left: -5px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.95);
+        transform-origin: center center;
+      }
+
+      .sf-bot-avatar-brow {
+        position: absolute;
+        top: 9px;
+        left: 9px;
+        right: 9px;
+        height: 2px;
+        background: linear-gradient(90deg, transparent 0%, rgba(96,165,250,0.45) 18%, rgba(96,165,250,0.8) 50%, rgba(96,165,250,0.45) 82%, transparent 100%);
+        border-radius: 999px;
+        opacity: 0.9;
+      }
+
+      .sf-bot-avatar--idle {
+        opacity: 0.92;
+      }
+
+      .sf-bot-avatar--active {
+        box-shadow: 0 0 12px rgba(59,130,246,0.45);
+      }
+
+      .sf-bot-avatar--normal {
+        box-shadow: 0 0 0 rgba(0,0,0,0);
+      }
+
+      .sf-bot-avatar--negotiating {
+        box-shadow: 0 0 18px rgba(245, 158, 11, 0.55);
+        border: 1px solid rgba(245, 158, 11, 0.65);
+      }
+
+      .sf-bot-avatar--high-risk {
+        box-shadow: 0 0 18px rgba(239, 68, 68, 0.60);
+        border: 1px solid rgba(239, 68, 68, 0.70);
+      }
+
+      .sf-bot-avatar--high-confidence {
+        box-shadow: 0 0 18px rgba(34, 197, 94, 0.60);
+        border: 1px solid rgba(34, 197, 94, 0.70);
+      }
+
+      .sf-bot-avatar--thinking .sf-bot-avatar-mouth {
+        animation: sfBotThinkingMouth 0.45s ease-in-out infinite alternate;
+      }
+
+      .sf-bot-avatar--speaking .sf-bot-avatar-mouth {
+        animation: sfBotSpeakingMouth 0.16s ease-in-out infinite alternate;
+      }
+
+      .sf-bot-avatar--speaking .sf-bot-avatar-eye {
+        box-shadow: 0 0 12px rgba(142,197,255,1);
+      }
+
+      .sf-bot-avatar--thinking .sf-bot-avatar-eye {
+        animation: sfBotEyePulse 0.6s ease-in-out infinite alternate;
+      }
+
+      @keyframes sfBotThinkingMouth {
+        from { transform: scaleX(1) scaleY(0.9); }
+        to   { transform: scaleX(1.15) scaleY(1.2); }
+      }
+
+      @keyframes sfBotSpeakingMouth {
+        0%   { transform: scaleX(1) scaleY(0.6); }
+        50%  { transform: scaleX(1.25) scaleY(1.45); }
+        100% { transform: scaleX(0.95) scaleY(0.8); }
+      }
+
+      @keyframes sfBotEyePulse {
+        from { opacity: 0.7; }
+        to   { opacity: 1; }
+      }
+
+      .sf-bot-close-btn,
+      .sf-bot-send-btn,
+      .sf-bot-voice-btn {
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(255,255,255,0.06);
+        color: inherit;
+        border-radius: 10px;
+        padding: 8px 10px;
+        font: inherit;
+        cursor: pointer;
+        transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+      }
+
+      .sf-bot-voice-btn {
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .sf-bot-close-btn:hover,
+      .sf-bot-send-btn:hover,
+      .sf-bot-voice-btn:hover {
+        background: rgba(255,255,255,0.10);
+      }
+
+      .sf-bot-close-btn:active,
+      .sf-bot-send-btn:active,
+      .sf-bot-voice-btn:active {
+        transform: scale(0.98);
+      }
+
+      .sf-bot-messages {
+        flex: 1;
+        overflow: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .sf-bot-message {
+        max-width: 100%;
+        border-radius: 16px;
+        padding: 12px;
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .sf-bot-message--bot {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.08);
+      }
+
+      .sf-bot-message--user {
+        background: rgba(96,165,250,0.14);
+        border: 1px solid rgba(96,165,250,0.18);
+        align-self: flex-end;
+      }
+
+      .sf-bot-message--thinking {
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+        width: fit-content;
+      }
+
+      .sf-bot-message--thinking span {
+        width: 7px;
+        height: 7px;
+        background: rgba(255,255,255,0.8);
+        border-radius: 999px;
+        display: inline-block;
+        animation: sfBotDots 0.8s infinite ease-in-out alternate;
+      }
+
+      .sf-bot-message--thinking span:nth-child(2) { animation-delay: 0.15s; }
+      .sf-bot-message--thinking span:nth-child(3) { animation-delay: 0.30s; }
+
+      @keyframes sfBotDots {
+        from { opacity: 0.35; transform: translateY(0); }
+        to   { opacity: 1; transform: translateY(-2px); }
+      }
+
+      .sf-bot-starters {
+        padding: 0 16px 12px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .sf-bot-starter-chip {
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.05);
+        color: var(--sf-text);
+        border-radius: 999px;
+        padding: 8px 10px;
+        font-size: 12px;
+        cursor: pointer;
+      }
+
+      .sf-bot-input-row {
+        display: flex;
+        gap: 8px;
+        padding: 14px 16px 16px;
+        border-top: 1px solid var(--sf-line);
+      }
+
+      .sf-bot-input {
+        flex: 1;
+        min-width: 0;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(255,255,255,0.06);
+        color: var(--sf-text);
+        border-radius: 12px;
+        padding: 12px 14px;
+        outline: none;
+      }
+
+      .sf-bot-input::placeholder {
+        color: var(--sf-muted);
+      }
+
+      .bot-answer-section { margin-bottom: 8px; }
+      .bot-answer-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: var(--sf-muted);
+        margin-bottom: 4px;
+        font-weight: 800;
+      }
+      .bot-answer-highlight {
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--sf-white);
+      }
+      .bot-answer-meta {
+        margin-top: 4px;
+        color: var(--sf-muted);
+        font-size: 12px;
+      }
+      .bot-answer-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0,1fr));
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .bot-cell {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        padding: 10px;
+      }
+      .bot-cell-label {
+        font-size: 11px;
+        color: var(--sf-muted);
+        margin-bottom: 4px;
+      }
+      .bot-cell-value {
+        font-size: 14px;
+        font-weight: 800;
+        color: var(--sf-white);
+      }
+      .bot-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+        font-size: 12px;
+      }
+      .bot-table th,
+      .bot-table td {
+        padding: 8px 6px;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        text-align: left;
+        vertical-align: top;
+      }
+      .bot-table th {
+        color: var(--sf-muted);
+        font-weight: 700;
+      }
+      .bot-mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      .bot-answer-badge,
+      .bot-badge-inline {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 5px 10px;
+        font-size: 11px;
+        font-weight: 800;
+        margin-top: 8px;
+      }
+      .bot-badge-negotiate {
+        background: rgba(245,158,11,0.14);
+        color: #ffd089;
+        border: 1px solid rgba(245,158,11,0.30);
+      }
+      .bot-badge-fast_move {
+        background: rgba(59,130,246,0.14);
+        color: #9fcbff;
+        border: 1px solid rgba(59,130,246,0.30);
+      }
+      .bot-badge-verify {
+        background: rgba(239,68,68,0.14);
+        color: #ffb4b4;
+        border: 1px solid rgba(239,68,68,0.30);
+      }
+      .bot-badge-watch {
+        background: rgba(255,255,255,0.08);
+        color: #d8e1f3;
+        border: 1px solid rgba(255,255,255,0.14);
+      }
+      .bot-badge-avoid {
+        background: rgba(239,68,68,0.14);
+        color: #ffb4b4;
+        border: 1px solid rgba(239,68,68,0.30);
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // ── Panel UI ──────────────────────────────────────────────────
+  function buildPanel() {
+    injectBotStyles();
+
+    var fab = document.createElement('button');
+    fab.id = 'sfBotFab';
+    fab.className = 'sf-bot-fab';
+    fab.setAttribute('aria-label', 'Abrir asistente de inteligencia');
+    fab.setAttribute('title', 'SF·CI Intelligence — pregúntame algo');
+    fab.innerHTML =
+      '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' +
+      '</svg>' +
+      '<span class="sf-bot-fab-label">Preguntar</span>';
+    document.body.appendChild(fab);
+
+    var panel = document.createElement('div');
+    panel.id = 'sfBotPanel';
+    panel.className = 'sf-bot-panel';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-label', 'Asistente SF·CI Intelligence');
+    panel.setAttribute('aria-modal', 'false');
+    panel.innerHTML =
+      '<div class="sf-bot-header">' +
+        '<div class="sf-bot-header-left">' +
+          '<div class="sf-bot-avatar sf-bot-avatar--idle" aria-hidden="true">' +
+            '<div class="sf-bot-avatar-face">' +
+              '<div class="sf-bot-avatar-helmet"></div>' +
+              '<div class="sf-bot-avatar-brow"></div>' +
+              '<div class="sf-bot-avatar-eyes">' +
+                '<span class="sf-bot-avatar-eye"></span>' +
+                '<span class="sf-bot-avatar-eye"></span>' +
+              '</div>' +
+              '<div class="sf-bot-avatar-mouth"></div>' +
+            '</div>' +
+          '</div>' +
+          '<div>' +
+            '<div class="sf-bot-header-name">' + BOT_NAME + '</div>' +
+            '<div class="sf-bot-header-sub">Datos cargados · solo este contexto</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="sf-bot-header-right">' +
+          '<button class="sf-bot-voice-btn" id="sfBotVoiceBtn" type="button" aria-label="Activar o desactivar voz">Voz: On</button>' +
+          '<button class="sf-bot-close-btn" id="sfBotCloseBtn" aria-label="Cerrar asistente">' +
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
+          '</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="sf-bot-messages" id="sfBotMessages" role="log" aria-live="polite" aria-label="Conversación"></div>' +
+      '<div class="sf-bot-starters" id="sfBotStarters"></div>' +
+      '<div class="sf-bot-input-row">' +
+        '<input type="text" id="sfBotInput" class="sf-bot-input" placeholder="Escribe una pregunta…" autocomplete="off" aria-label="Pregunta al asistente" maxlength="300">' +
+        '<button id="sfBotSendBtn" class="sf-bot-send-btn" aria-label="Enviar pregunta">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>' +
+        '</button>' +
+      '</div>';
+    document.body.appendChild(panel);
+
+    document.getElementById('sfBotCloseBtn').addEventListener('click', closePanel);
+    fab.addEventListener('click', togglePanel);
+
+    var input   = document.getElementById('sfBotInput');
+    var sendBtn = document.getElementById('sfBotSendBtn');
+    var voiceBtn = document.getElementById('sfBotVoiceBtn');
+
+    sendBtn.addEventListener('click', function() { sendQuestion(); });
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendQuestion();
+      }
+    });
+
+    if (voiceBtn) {
+      voiceBtn.addEventListener('click', function() {
+        botVoiceEnabled = !botVoiceEnabled;
+        voiceBtn.textContent = botVoiceEnabled ? 'Voz: On' : 'Voz: Off';
+        if (!botVoiceEnabled) stopBotSpeech();
+      });
+    }
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.getVoices();
+      window.speechSynthesis.onvoiceschanged = function() {
+        window.speechSynthesis.getVoices();
+      };
+    }
+
+    renderStarters();
+    pushMessage('bot', BOT_INTRO, BOT_INTRO);
+    syncAvatarState();
+  }
+
+  function renderStarters() {
+    var el = document.getElementById('sfBotStarters');
+    if (!el) return;
+
+    if (messages.length > 1) {
+      el.style.display = 'none';
+      return;
+    }
+
+    el.style.display = '';
+    el.innerHTML = STARTER_PROMPTS.map(function(p) {
+      return '<button class="sf-bot-starter-chip" data-q="' + escH(p) + '">' + escH(p) + '</button>';
+    }).join('');
+
+    el.querySelectorAll('.sf-bot-starter-chip').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var q = btn.getAttribute('data-q');
+        sendQuestion(q);
+      });
+    });
+  }
+
+  function togglePanel() {
+    if (panelOpen) closePanel();
+    else openPanel();
+  }
+
+  function openPanel() {
+    var panel = document.getElementById('sfBotPanel');
+    var fab   = document.getElementById('sfBotFab');
+    if (!panel) return;
+
+    panelOpen = true;
+    panel.classList.add('sf-bot-panel--open');
+    fab.classList.add('sf-bot-fab--active');
+    fab.setAttribute('aria-expanded', 'true');
+
+    var cur = getCurrentListing();
+    var header = panel.querySelector('.sf-bot-header-sub');
+    if (header) {
+      header.textContent = cur ? ('Contexto: ' + (cur.title || cur.id)) : 'Datos cargados · solo este contexto';
+    }
+
+    syncAvatarState();
+    applyListingAvatarState(getCurrentListing());
+
+    setTimeout(function() {
+      var input = document.getElementById('sfBotInput');
+      if (input) input.focus();
+    }, 50);
+  }
+
+  function closePanel() {
+    var panel = document.getElementById('sfBotPanel');
+    var fab   = document.getElementById('sfBotFab');
+    if (!panel) return;
+
+    panelOpen = false;
+    panel.classList.remove('sf-bot-panel--open');
+    fab.classList.remove('sf-bot-fab--active');
+    fab.setAttribute('aria-expanded', 'false');
+
+    stopBotSpeech();
+    syncAvatarState();
+  }
+
+  function pushMessage(role, html, rawText) {
+    messages.push({ role: role, html: html, text: rawText });
+    renderMessages();
+  }
+
+  function pushThinking(id) {
+    var container = document.getElementById('sfBotMessages');
+    if (!container) return;
+    var el = document.createElement('div');
+    el.className = 'sf-bot-message sf-bot-message--bot sf-bot-message--thinking';
+    el.id = id;
+    el.innerHTML = '<span></span><span></span><span></span>';
+    container.appendChild(el);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function removeThinking(id) {
+    var el = document.getElementById(id);
+    if (el) el.remove();
+  }
+
+  function renderMessages() {
+    var container = document.getElementById('sfBotMessages');
+    if (!container) return;
+
+    container.innerHTML = messages.map(function(m) {
+      var cls = 'sf-bot-message sf-bot-message--' + m.role;
+      return '<div class="' + cls + '">' + m.html + '</div>';
+    }).join('');
+
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function sendQuestion(overrideQ) {
+    var input = document.getElementById('sfBotInput');
+    var q = (overrideQ || (input ? input.value : '')).trim();
+    if (!q) return;
+    if (input && !overrideQ) input.value = '';
+
+    pushMessage('user', escH(q), q);
+
+    var starters = document.getElementById('sfBotStarters');
+    if (starters) starters.style.display = 'none';
+
+    var thinkId = 'sfBotThink_' + Date.now();
+    pushThinking(thinkId);
+
+    botThinking = true;
+    syncAvatarState();
+
+    setTimeout(function() {
+      removeThinking(thinkId);
+      botThinking = false;
+      syncAvatarState();
+
+      var html = answer(q);
+      pushMessage('bot', html, q);
+      speakBotResponse(html);
+      applyListingAvatarState(getCurrentListing());
+    }, 160);
+  }
+
+  // ── Keyboard shortcut ─────────────────────────────────────────
+  document.addEventListener('keydown', function(e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === '/') {
+      e.preventDefault();
+      togglePanel();
+    }
+    if (e.key === 'Escape' && panelOpen) {
+      closePanel();
+    }
+  });
+
+  // ── Init ──────────────────────────────────────────────────────
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', buildPanel);
+  } else {
+    buildPanel();
+  }
+
+  window.sfBotOpen = openPanel;
+
+})();
+
+What this means in plain terms:
+	•	one file only
+	•	no separate HTML edits
+	•	no separate CSS edits
+	•	no PNG required
+	•	avatar is already built in as a single-file UI face, so you can deploy now
+
+What it is not:
+	•	not microphone input
+	•	not true phoneme lip sync
+	•	not a 3D character rig
+
+What it does:
+	•	speaks
+	•	moves mouth while speaking
+	•	changes state by context
+	•	remains aligned with your existing Santa Fe CI bot logic
+
+If you want, next I’ll give you the same thing but as a clean patch/diff against your current bot.js, which is usually the fastest way to hand it to Perplexity Computer.

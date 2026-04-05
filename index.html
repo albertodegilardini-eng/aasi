@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Santa Fe CI — Decision Engine for High-Value Leasing</title>
+<meta name="description" content="Market intelligence for Santa Fe, CDMX. Leasing, pricing, comparables and negotiation execution across Península, Torre 300 and Paradox.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.5.0/dist/maplibre-gl.css">
+<script src="https://unpkg.com/maplibre-gl@4.5.0/dist/maplibre-gl.js"></script>
+
+<link rel="stylesheet" href="./base.css?v=20260404-1654">
+<link rel="stylesheet" href="./style.css?v=20260404-1654">
+<link rel="stylesheet" href="./map.css?v=20260404-1654">
+<link rel="stylesheet" href="./tracking.css?v=20260404-1654">
+<link rel="stylesheet" href="./enhancements.css?v=20260404-2200">
+</head>
+<body>
+  <div id="app">
+
+    <!-- ═══ MARKET PULSE BAR ═══ -->
+    <div class="market-pulse-bar" id="marketPulseBar">
+      <div class="pulse-left">
+        <span class="pulse-dot pulse-live" aria-label="Live"></span>
+        <span class="pulse-label">SF·CI</span>
+        <span class="data-status demo" id="dataStatusBadge">Cargando</span>
+        <span class="pulse-sep">·</span>
+        <span id="pulseListings" class="pulse-stat">— listados</span>
+        <span class="pulse-sep">·</span>
+        <span id="pulseMedianPsm" class="pulse-stat pulse-mono">$/m² mediano: —</span>
+        <span class="pulse-sep">·</span>
+        <span id="pulseNegotiate" class="pulse-stat">— para negociar</span>
+      </div>
+      <div class="pulse-right">
+        <span id="pulseTime" class="pulse-time pulse-mono"></span>
+        <button class="pulse-refresh-btn" id="pulseRefreshBtn" title="Actualizar">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══ HEADER ═══ -->
+    <header class="app-header">
+      <div class="header-left">
+        <button class="back-btn" id="backBtn" aria-label="Volver al resumen" style="display:none;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <!-- Wordmark logo — intelligence platform identity -->
+        <div class="logo" id="logoBtn" role="button" tabindex="0" aria-label="Santa Fe CI — Plataforma de inteligencia">
+          <svg class="logo-mark" width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true">
+            <!-- Precision monogram: SF grid mark -->
+            <rect x="1" y="1" width="24" height="24" rx="4" stroke="currentColor" stroke-width="1.5"/>
+            <!-- S stroke -->
+            <path d="M8 17.5C8 17.5 9.5 19 12.5 19C15.5 19 17 17.5 17 15.5C17 13 14.5 12.5 12.5 12C10.5 11.5 9 10.5 9 8.5C9 6.5 10.5 7 12.5 7C14.5 7 16 8 16 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <!-- F bar -->
+            <line x1="9" y1="13" x2="15.5" y2="13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.45"/>
+          </svg>
+          <div class="logo-text-wrap">
+            <span class="logo-text">Santa Fe<span class="logo-wordmark-sep"> </span><span class="logo-accent">CI</span></span>
+            <span class="logo-tagline">Market Intelligence</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-center">
+        <div class="search-wrapper" id="searchWrapper">
+          <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" id="searchInput" placeholder="Buscar por ID, edificio, precio… (⌘K)" autocomplete="off" aria-label="Buscar listados" aria-controls="searchResults" aria-autocomplete="list">
+          <div class="search-results" id="searchResults" role="listbox" aria-expanded="false"></div>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <nav class="header-nav" aria-label="Navegación principal">
+          <button class="nav-btn" id="overviewNavBtn" data-view="overview" aria-current="page">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            <span>Vista</span>
+          </button>
+          <button class="nav-btn" id="operatorNavBtn" data-view="operator">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <span>Operador</span>
+          </button>
+          <button class="nav-btn" id="compareBtn" data-view="compare">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+            <span>Comparar</span>
+          </button>
+          <button class="nav-btn" id="agentsBtn" data-view="agents">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>Agentes</span>
+          </button>
+          <button class="nav-btn" id="dashboardBtn" data-view="dashboard">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="8" height="8" rx="1"/><rect x="14" y="3" width="8" height="8" rx="1"/><rect x="2" y="13" width="8" height="8" rx="1"/><path d="M14 17h8M18 13v8"/></svg>
+            <span>Dashboard</span>
+          </button>
+          <button class="nav-btn" id="mapNavBtn" data-view="map">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+            <span>Mapa</span>
+          </button>
+          <button class="nav-btn" id="trackingNavBtn" data-view="tracking">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            <span>Fuentes</span>
+            <span class="nav-alert-dot" id="trackingAlertDot" style="display:none;"></span>
+          </button>
+        </nav>
+
+        <div class="header-actions">
+          <!-- Bot: ask AI button in header -->
+          <button class="sf-bot-header-btn" id="sfBotHeaderBtn" title="Asistente SF·CI — pregunta sobre los datos (⌘/)" aria-label="Abrir asistente de inteligencia" onclick="sfBotOpen && sfBotOpen()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Preguntar
+          </button>
+          <!-- Blueprint merge: guided mode help button -->
+          <button class="help-btn" id="guidedModeBtn" title="Modo guiado — cómo usar la plataforma" aria-label="Abrir guía de uso">
+            ?
+          </button>
+          <!-- Blueprint merge: export snapshot button -->
+          <button class="export-snapshot-btn" id="exportSnapshotBtn" title="Exportar snapshot de listados actuales" aria-label="Exportar snapshot JSON">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export
+          </button>
+          <button class="icon-btn" id="refreshBtn" title="Actualizar datos" aria-label="Actualizar datos">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+          </button>
+          <button class="icon-btn" data-theme-toggle aria-label="Cambiar tema">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ═══ MAIN ═══ -->
+    <main class="app-main" id="appMain">
+
+      <!-- ╔══════════════════════════════════╗
+           ║  OVERVIEW VIEW                   ║
+           ╚══════════════════════════════════╝ -->
+      <div id="overviewView" class="view active">
+
+        <!-- Hero banner -->
+        <div class="overview-hero" role="img" aria-label="Vista aérea Santa Fe CDMX">
+          <img class="overview-hero-img" src="img/hero-santafe.jpg" alt="Santa Fe CDMX vista nocturna" fetchpriority="high" decoding="async">
+          <div class="overview-hero-overlay"></div>
+          <div class="overview-hero-badge">
+            <span class="hero-live-dot"></span>
+            <span>Santa Fe CI · Abril 2026</span>
+          </div>
+          <div class="overview-hero-content">
+            <div class="overview-hero-title">Intelligence Layer</div>
+            <div class="overview-hero-sub">Santa Fe · CDMX · Arrendamiento de alto valor &middot; Península &middot; Torre 300 &middot; Paradox</div>
+          </div>
+        </div>
+
+        <!-- Page title + filter row -->
+        <div class="view-header">
+          <div class="view-title-block">
+            <h1>Intelligence Layer — Decisión de Arrendamiento, Santa Fe</h1>
+            <p class="subtitle" id="overviewSubtitle">Cargando listados…</p>
+          </div>
+          <div class="filter-row" role="group" aria-label="Filtrar listados">
+            <button class="filter-chip active" data-filter="all">Todos</button>
+            <button class="filter-chip" data-filter="peninsula">Península</button>
+            <button class="filter-chip" data-filter="torre300">Torre 300</button>
+            <button class="filter-chip" data-filter="paradox">Paradox</button>
+            <div class="filter-sep"></div>
+            <button class="filter-chip" data-filter="negotiate">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8z"/></svg>
+              Negociar
+            </button>
+            <button class="filter-chip" data-filter="1bed">1 Rec</button>
+            <button class="filter-chip" data-filter="2bed">2 Rec</button>
+            <button class="filter-chip" data-filter="3bed">3+ Rec</button>
+          </div>
+        </div>
+
+        <!-- Blueprint merge: decision engine banner + advanced filters collapse -->
+        <div class="decision-engine-banner" id="decisionEngineBanner">
+          <span class="decision-engine-eyebrow">Operating view — Motor de decisión</span>
+          <div class="decision-engine-sep"></div>
+          <span class="decision-engine-summary" id="decisionEngineSummary">Cargando inteligencia de mercado&hellip;</span>
+          <button class="decision-engine-cta" id="decisionEngineGuideBtn">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            Guía rápida
+          </button>
+        </div>
+
+        <!-- Advanced filter collapse (blueprint) -->
+        <details class="adv-filter-details" id="advFilterDetails">
+          <summary class="adv-filter-summary">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            Execution controls — Filtros avanzados
+            <span class="adv-filter-arrow">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
+          </summary>
+          <div class="adv-filter-body">
+            <div class="adv-filter-group">
+              <label class="adv-filter-label" for="advTowerFilter">Torre</label>
+              <select class="adv-filter-select" id="advTowerFilter">
+                <option value="all">Todas las torres</option>
+                <option value="peninsula">Península</option>
+                <option value="torre300">Torre 300</option>
+                <option value="paradox">Paradox</option>
+              </select>
+            </div>
+            <div class="adv-filter-group">
+              <label class="adv-filter-label" for="advBedsFilter">Recámaras</label>
+              <select class="adv-filter-select" id="advBedsFilter">
+                <option value="all">Todas</option>
+                <option value="1">1 recámara</option>
+                <option value="2">2 recámaras</option>
+                <option value="3">3+ recámaras</option>
+              </select>
+            </div>
+            <div class="adv-filter-group">
+              <label class="adv-filter-label" for="advSortFilter">Ordenar por</label>
+              <select class="adv-filter-select" id="advSortFilter">
+                <option value="composite_score">Oportunidad (score composite)</option>
+                <option value="leverage_score">Leverage</option>
+                <option value="price_asc">Precio ↑</option>
+                <option value="price_desc">Precio ↓</option>
+                <option value="dom">Mayor antigüedad (DOM)</option>
+              </select>
+            </div>
+            <div class="adv-filter-group">
+              <label class="adv-filter-label" for="advMinPriceFilter">Precio mín. (MXN)</label>
+              <input class="adv-filter-input" type="number" id="advMinPriceFilter" placeholder="30 000" min="0" step="1000">
+            </div>
+            <div class="adv-filter-group">
+              <label class="adv-filter-label" for="advMinSqmFilter">M² mínimo</label>
+              <input class="adv-filter-input" type="number" id="advMinSqmFilter" placeholder="0" min="0" step="5">
+            </div>
+            <div class="adv-filter-group">
+              <label class="adv-filter-label"> </label>
+              <label class="adv-filter-checkbox-row">
+                <input type="checkbox" id="advNegotiableOnly">
+                Mostrar solo negociables
+              </label>
+            </div>
+          </div>
+          <div class="adv-filter-actions">
+            <button class="adv-filter-apply-btn" id="advFilterApplyBtn">Aplicar filtros</button>
+            <button class="adv-filter-reset-btn" id="advFilterResetBtn">Restablecer</button>
+          </div>
+        </details>
+
+        <!-- Operating context strip (blueprint: single-source-of-truth summary) -->
+        <div class="operating-context-strip" id="operatingContextStrip">
+          <div class="op-context-item">
+            <span class="op-context-label">Universo</span>
+            <span class="op-context-value" id="ctxUniverse">—</span>
+          </div>
+          <div class="op-context-sep"></div>
+          <div class="op-context-item">
+            <span class="op-context-label">Mediana</span>
+            <span class="op-context-value" id="ctxMedian">—</span>
+          </div>
+          <div class="op-context-sep"></div>
+          <div class="op-context-item">
+            <span class="op-context-label">$/m²</span>
+            <span class="op-context-value" id="ctxPsm">—</span>
+          </div>
+          <div class="op-context-sep"></div>
+          <div class="op-context-item">
+            <span class="op-context-label">Para negociar</span>
+            <span class="op-context-value" id="ctxNegotiate">—</span>
+          </div>
+          <div class="op-context-sep"></div>
+          <div class="op-context-item">
+            <span class="op-context-label">Mejor oportunidad</span>
+            <span class="op-context-value" id="ctxBestDeal">—</span>
+          </div>
+        </div>
+
+        <!-- KPI strip -->
+        <div class="kpi-strip" id="kpiStrip" role="region" aria-label="Indicadores clave"></div>
+
+        <!-- Building cards -->
+        <div class="buildings-strip" id="buildingsStrip" role="region" aria-label="Edificios"></div>
+
+        <!-- Market Charts panel (from MarketCharts.tsx concept) -->
+        <div class="market-charts-panel" id="marketChartsPanel">
+          <div class="panel-header">
+            <span class="panel-title">Distribución de Mercado</span>
+            <div class="panel-tabs" id="marketChartTabs">
+              <button class="panel-tab active" data-chart="price_distribution">Precio/m²</button>
+              <button class="panel-tab" data-chart="dom_distribution">Días en Mercado</button>
+              <button class="panel-tab" data-chart="score_distribution">Score Valor</button>
+            </div>
+          </div>
+          <div class="market-chart-area">
+            <canvas id="marketDistChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Events Feed -->
+        <details class="events-panel" id="eventsPanel">
+          <summary class="events-summary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span>Eventos recientes</span>
+            <span class="events-count-badge" id="eventsCountBadge">0</span>
+          </summary>
+          <div class="events-list" id="eventsList"></div>
+        </details>
+
+        <!-- Listings section header -->
+        <div class="listings-section-header">
+          <span class="listings-section-title">Listados</span>
+          <span class="listings-count" id="listingsCount"></span>
+          <div class="sort-controls">
+            <label class="sort-label" for="sortSelect">Ordenar:</label>
+            <select id="sortSelect" class="sort-select">
+              <option value="composite_score">Oportunidad</option>
+              <option value="leverage_score">Leverage</option>
+              <option value="price_asc">Precio ascendente</option>
+              <option value="price_desc">Precio descendente</option>
+              <option value="dom">Mayor antigüedad</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Listings Grid -->
+        <div class="listings-grid" id="listingsGrid" role="list">
+          <div class="skeleton-card"><div class="skeleton-line thick short"></div><div class="skeleton-line long"></div><div class="skeleton-line medium"></div><div class="skeleton-line full"></div><div class="skeleton-line short"></div></div>
+          <div class="skeleton-card"><div class="skeleton-line thick short"></div><div class="skeleton-line long"></div><div class="skeleton-line medium"></div><div class="skeleton-line full"></div><div class="skeleton-line short"></div></div>
+          <div class="skeleton-card"><div class="skeleton-line thick short"></div><div class="skeleton-line long"></div><div class="skeleton-line medium"></div><div class="skeleton-line full"></div><div class="skeleton-line short"></div></div>
+        </div>
+      </div>
+
+      <!-- ╔══════════════════════════════════╗
+           ║  DETAIL VIEW                     ║
+           ╚══════════════════════════════════╝ -->
+      <div id="detailView" class="view">
+        <!-- Renter intel header (from leverage.css) -->
+        <div class="renter-intel-header" id="renterIntelHeader" style="display:none;">
+          <div class="renter-intel-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          </div>
+          <div class="renter-intel-body">
+            <div class="renter-intel-title">Tu ventaja como arrendatario</div>
+            <div class="renter-intel-desc" id="renterIntelDesc">Analizando posición de mercado…</div>
+          </div>
+          <span class="renter-badge" id="renterBadge">INTEL</span>
+        </div>
+
+        <div class="detail-header" id="detailHeader"></div>
+        <div class="detail-scores-strip" id="detailScores"></div>
+
+        <!-- Enhanced negotiation band -->
+        <div id="negotiationBand"></div>
+
+        <!-- Leverage panel (from leverage.css concepts) -->
+        <div class="drawer-leverage-panel" id="leveragePanel" style="display:none;">
+          <div class="drawer-leverage-header">
+            <div>
+              <div class="drawer-leverage-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l18 18M10.5 10.677A2 2 0 0 0 12 14a2 2 0 1 0-1.5-3.323"/><path d="M17.357 16.357A8 8 0 1 1 7.643 6.643"/></svg>
+                Análisis de Leverage
+              </div>
+              <div class="drawer-leverage-subtitle" id="leveragePanelSubtitle">Indicadores de poder de negociación</div>
+            </div>
+          </div>
+          <div class="drawer-visuals-grid" id="leverageVisualsGrid"></div>
+          <!-- Leverage points list -->
+          <div class="leverage-points-section" id="leveragePointsSection"></div>
+        </div>
+
+        <!-- Intel grid -->
+        <div class="intel-grid" id="intelGrid"></div>
+
+        <!-- Inquiry form -->
+        <div id="inquirySection"></div>
+      </div>
+
+      <!-- ╔══════════════════════════════════╗
+           ║  OPERATOR VIEW                   ║
+           ╚══════════════════════════════════╝ -->
+      <div id="operatorView" class="view">
+        <!-- Blueprint merge: negotiation decision framing banner -->
+        <div class="negotiation-decision-banner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" color="var(--color-success)"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <div class="decision-banner-text">
+            <div class="decision-banner-label" style="color:var(--color-success)">Negotiation workbench — Lista de acción</div>
+            <div class="decision-banner-desc">Unidades ordenadas por score de acción. “Negociar” = oportunidad verificada con banda de oferta, opening anchor y battle card listos. Actúa en las unidades críticas de hoy.</div>
+          </div>
+        </div>
+        <div class="view-header">
+          <div class="view-title-block">
+            <h1>Negotiation Workbench — Hoy</h1>
+            <p class="subtitle" id="operatorSubtitle">Argumentos, banda operativa y guión de cierre · Ordenado por score de acción · Opening anchor y battle card incluidos</p>
+          </div>
+        </div>
+
+        <!-- Operator summary strip (from operator.css) -->
+        <div class="op-summary-strip" id="opSummaryStrip"></div>
+
+        <!-- BV callout -->
+        <div class="op-bv-callout" id="opBvCallout" style="display:none;">
+          <div class="bv-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <span>Mejor valor disponible: <strong id="opBvId"></strong> — <span id="opBvPrice"></span></span>
+        </div>
+
+        <!-- Filter bar -->
+        <div class="op-filter-bar" id="opFilterBar">
+          <button class="op-filter-btn active" data-op-filter="all">Todos</button>
+          <div class="op-filter-sep"></div>
+          <button class="op-filter-btn" data-op-filter="negotiate">Negociar</button>
+          <button class="op-filter-btn" data-op-filter="fast_move">Movimiento rápido</button>
+          <button class="op-filter-btn" data-op-filter="verify">Verificar</button>
+          <button class="op-filter-btn" data-op-filter="monitor">Monitorear</button>
+        </div>
+
+        <!-- Action cards list -->
+        <div id="operatorCards"></div>
+      </div>
+
+      <!-- ╔══════════════════════════════════╗
+           ║  COMPARE VIEW                    ║
+           ╚══════════════════════════════════╝ -->
+      <div id="compareView" class="view">
+        <!-- Blueprint merge: compare decision framing banner -->
+        <div class="compare-decision-banner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" color="var(--color-primary)"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+          <div class="decision-banner-text">
+            <div class="decision-banner-label">Comparative matrix — Benchmark operativo</div>
+            <div class="decision-banner-desc">Analiza hasta 3 torres en paralelo. Prioriza $/m² y días en mercado como indicadores primarios de valor. El score composite refleja oportunidad ajustada por riesgo de agente y confianza de datos.</div>
+          </div>
+        </div>
+        <div class="view-header">
+          <div class="view-title-block">
+            <h1>Comparative Matrix — Benchmark por Torre</h1>
+            <p class="subtitle">$/m² · Días en mercado · Leverage · Score composite por edificio</p>
+          </div>
+        </div>
+        <div class="compare-content">
+          <div class="compare-sidebar" id="compareSidebar"></div>
+          <div class="compare-main" id="compareMain">
+            <div class="compare-empty">
+              <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.25"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+              <p>Selecciona una métrica para comparar</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cross-tower stats (from leverage.css) -->
+        <div class="cross-tower-section" id="crossTowerSection" style="display:none;">
+          <div class="cross-tower-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Contexto entre torres
+          </div>
+          <div class="cross-tower-grid" id="crossTowerGrid"></div>
+        </div>
+      </div>
+
+      <!-- ╔══════════════════════════════════╗
+           ║  AGENTS VIEW                     ║
+           ╚══════════════════════════════════╝ -->
+      <div id="agentsView" class="view">
+        <div class="view-header">
+          <div class="view-title-block">
+            <h1>Directorio de Agentes</h1>
+            <p class="subtitle">Credibilidad y historial de interacciones por broker</p>
+          </div>
+        </div>
+
+        <!-- Scorecard grid (from tracking.css) -->
+        <div class="scorecards-grid" id="scorecardsGrid"></div>
+
+        <!-- Agents table fallback -->
+        <div class="agents-table-wrap" id="agentsTableWrap"></div>
+      </div>
+
+      <!-- ╔══════════════════════════════════╗
+           ║  DASHBOARD VIEW                  ║
+           ╚══════════════════════════════════╝ -->
+      <div id="dashboardView" class="view">
+        <div class="view-header">
+          <div class="view-title-block">
+            <h1>Dashboard — Santa Fe AI</h1>
+            <p class="subtitle" id="dashboardSubtitle">Métricas clave · tendencias · distribución de mercado</p>
+          </div>
+        </div>
+
+        <!-- Dashboard KPI row -->
+        <div class="dash-kpi-row" id="dashKpiRow"></div>
+
+        <!-- Dashboard charts grid -->
+        <div class="dash-charts-grid" id="dashChartsGrid"></div>
+
+        <!-- Market overview strip -->
+        <div class="dash-section-header">
+          <span class="dash-section-title">Métricas por Edificio</span>
+          <span class="dash-section-sub">Comparativa entre torres</span>
+        </div>
+        <div class="dash-building-metrics" id="dashBuildingMetrics"></div>
+
+        <!-- Score distribution -->
+        <div class="dash-section-header">
+          <span class="dash-section-title">Distribución de Scores</span>
+          <span class="dash-section-sub">Score Composite · Leverage · Confianza</span>
+        </div>
+        <div class="dash-score-charts" id="dashScoreCharts">
+          <div class="dash-chart-card">
+            <div class="dash-chart-title">Score Composite por Listado</div>
+            <div class="dash-chart-unit">Índice 0–100</div>
+            <div class="dash-chart-container"><canvas id="dashCompositeChart"></canvas></div>
+          </div>
+          <div class="dash-chart-card">
+            <div class="dash-chart-title">Leverage vs. Días en Mercado</div>
+            <div class="dash-chart-unit">Correlación de poder negociador</div>
+            <div class="dash-chart-container"><canvas id="dashLeverageChart"></canvas></div>
+          </div>
+          <div class="dash-chart-card">
+            <div class="dash-chart-title">Precio por m² — Distribución</div>
+            <div class="dash-chart-unit">MXN/m² por edificio</div>
+            <div class="dash-chart-container"><canvas id="dashPsmChart"></canvas></div>
+          </div>
+          <div class="dash-chart-card">
+            <div class="dash-chart-title">Ghost % — Riesgo de disponibilidad</div>
+            <div class="dash-chart-unit">Probabilidad de listing fantasma</div>
+            <div class="dash-chart-container"><canvas id="dashGhostChart"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ╔══════════════════════════════════╗
+           ║  TRACKING VIEW                   ║
+           ╚══════════════════════════════════╝ -->
+      <div id="trackingView" class="view">
+        <div class="view-header">
+          <div class="view-title-block">
+            <h1>Verificación de Fuentes</h1>
+            <p class="subtitle" id="trackingSubtitle">Estado de las fuentes monitoreadas — qué se revisó, qué cambió, qué requiere atención</p>
+          </div>
+          <div class="tracking-header-actions">
+            <div class="verify-run-context" id="verifyRunContext">
+              <span class="verify-last-run-label">Última verificación:</span>
+              <span class="verify-last-run-ts" id="verifyLastRunTs">—</span>
+            </div>
+            <button class="collect-run-btn" id="run-collect-btn" data-testid="button-run-collect">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+              Verificar ahora
+            </button>
+          </div>
+        </div>
+
+        <!-- Alert Summary KPIs -->
+        <div class="tracking-kpi-row" id="trackingKpiRow"></div>
+
+        <!-- Tabs -->
+        <div class="tracking-tabs" id="trackingTabs" role="tablist">
+          <button class="tracking-tab active" data-tracking-tab="alerts" role="tab" aria-selected="true" data-testid="tab-alerts">Alertas activas</button>
+          <button class="tracking-tab" data-tracking-tab="watchstate" role="tab" aria-selected="false" data-testid="tab-watchstate">Listados en vigilancia</button>
+          <button class="tracking-tab" data-tracking-tab="eventlog" role="tab" aria-selected="false" data-testid="tab-eventlog">Registro de cambios</button>
+          <button class="tracking-tab" data-tracking-tab="snapshots" role="tab" aria-selected="false" data-testid="tab-snapshots">Capturas de fuente</button>
+        </div>
+
+        <!-- Alerts Panel -->
+        <div class="tracking-panel" id="trackingPanel-alerts">
+          <!-- Alert rules reference -->
+          <div class="tracking-section-header">
+            <span class="tracking-section-title">Cambios que requieren atención</span>
+            <div class="alert-filter-row" id="alertFilterRow">
+              <button class="filter-chip active" data-alert-filter="all">Todas</button>
+              <button class="filter-chip" data-alert-filter="critical">Críticas</button>
+              <button class="filter-chip" data-alert-filter="high">Altas</button>
+              <button class="filter-chip" data-alert-filter="medium">Medias</button>
+              <button class="filter-chip" data-alert-filter="low">Bajas</button>
+            </div>
+          </div>
+          <div class="alerts-feed" id="alertsFeed"></div>
+        </div>
+
+        <!-- Watch State Panel -->
+        <div class="tracking-panel" id="trackingPanel-watchstate" style="display:none;">
+          <div class="tracking-section-header">
+            <span class="tracking-section-title">Listados en seguimiento</span>
+            <span class="tracking-section-sub" id="watchStateCount">Cargando…</span>
+          </div>
+          <div class="watch-state-table-wrap" id="watchStateTable"></div>
+        </div>
+
+        <!-- Event Log Panel -->
+        <div class="tracking-panel" id="trackingPanel-eventlog" style="display:none;">
+          <div class="tracking-section-header">
+            <span class="tracking-section-title">Historial de cambios detectados</span>
+            <div class="alert-filter-row" id="eventLogFilterRow">
+              <button class="filter-chip active" data-event-filter="all">Todos</button>
+              <button class="filter-chip" data-event-filter="off_market">Fuera mercado</button>
+              <button class="filter-chip" data-event-filter="price_drop">Baja precio</button>
+              <button class="filter-chip" data-event-filter="source_missing">Sin fuente</button>
+              <button class="filter-chip" data-event-filter="access_blocked">Bloqueado</button>
+            </div>
+          </div>
+          <div class="event-log-list" id="eventLogList"></div>
+        </div>
+
+        <!-- Snapshots Panel -->
+        <div class="tracking-panel" id="trackingPanel-snapshots" style="display:none;">
+          <div class="tracking-section-header">
+            <span class="tracking-section-title">Capturas de fuente</span>
+            <span class="tracking-section-sub">Última lectura por URL de origen</span>
+          </div>
+          <div class="snapshots-list" id="snapshotsList"></div>
+        </div>
+      </div>
+
+      <!-- ╔══════════════════════════════════╗
+           ║  MAP VIEW                        ║
+           ╚══════════════════════════════════╝ -->
+      <div id="mapView" class="view">
+        <section id="section-map" class="content-section map-section">
+
+          <!-- Top bar: layer toggle + controls -->
+          <div class="map-top-bar">
+            <div class="map-top-left">
+              <!-- Layer toggle -->
+              <div class="map-layer-toggle" role="group" aria-label="Capa base">
+                <button class="map-layer-btn active" data-layer="dark" title="Vista oscura">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/></svg>
+                  Oscuro
+                </button>
+                <button class="map-layer-btn" data-layer="satellite" title="Vista satélite">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                  Satélite
+                </button>
+                <button class="map-layer-btn" data-layer="streets" title="Vista calles">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                  Calles
+                </button>
+              </div>
+
+              <!-- Building filter on map -->
+              <div class="map-layer-toggle" role="group" aria-label="Filtrar edificios">
+                <button class="map-layer-btn active" data-map-filter="all">Todos</button>
+                <button class="map-layer-btn" data-map-filter="peninsula" style="color:var(--building-peninsula)">Península</button>
+                <button class="map-layer-btn" data-map-filter="torre300" style="color:var(--building-torre300)">Torre 300</button>
+                <button class="map-layer-btn" data-map-filter="paradox" style="color:var(--building-paradox)">Paradox</button>
+              </div>
+            </div>
+
+            <div class="map-top-controls">
+              <button class="map-control-btn" id="mapFitBtn" title="Centrar en Santa Fe">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Centrar
+              </button>
+              <span class="map-control-btn" id="mapListingCount" style="cursor:default;">— listados</span>
+            </div>
+          </div>
+
+          <!-- Map body -->
+          <div class="map-body">
+            <!-- Map canvas -->
+            <div class="map-canvas" id="mapCanvas"></div>
+
+            <!-- Legend — decision key (always visible) -->
+            <div class="map-legend" id="mapLegend">
+              <div class="map-legend-items">
+                <div class="map-legend-label-row">Torres</div>
+                <div class="map-legend-row">
+                  <span class="legend-tower-pin peninsula"></span> Península
+                </div>
+                <div class="map-legend-row">
+                  <span class="legend-tower-pin torre300"></span> Torre 300
+                </div>
+                <div class="map-legend-row">
+                  <span class="legend-tower-pin paradox"></span> Paradox
+                </div>
+                <div class="map-legend-sep"></div>
+                <div class="map-legend-label-row">Confianza</div>
+                <div class="map-legend-row">
+                  <span class="legend-conf-dot conf-high"></span> Alta
+                </div>
+                <div class="map-legend-row">
+                  <span class="legend-conf-dot conf-mid"></span> Media
+                </div>
+                <div class="map-legend-row">
+                  <span class="legend-conf-dot conf-low"></span> Baja
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </section>
+      </div>
+
+    </main>
+
+    <!-- ═══ FOOTER (blueprint merge: animated market pulse ticker) ═══ -->
+    <footer class="app-footer">
+      <!-- Animated ticker track (blueprint pattern) -->
+      <div class="ticker-scroll-wrap" id="tickerScrollWrap" aria-label="Pulso de mercado">
+        <div class="ticker-scroll-track" id="tickerScrollTrack">
+          <!-- JS populates this with duplicated items for seamless loop -->
+        </div>
+      </div>
+      <!-- Footer meta -->
+      <span class="pulse-mono" style="flex-shrink:0;white-space:nowrap;">
+        <span id="cacheStatusFooter"></span>
+      </span>
+    </footer>
+
+  </div><!-- /#app -->
+
+  <!-- ═══ GUIDED MODE DIALOG (blueprint merge) ═══ -->
+  <dialog id="guidedDialog" class="guided-dialog-bp" aria-labelledby="guidedDialogTitle">
+    <div class="guided-card-bp">
+      <div class="guided-eyebrow">Modo guiado</div>
+      <h2 class="guided-title" id="guidedDialogTitle">Flujo de trabajo recomendado</h2>
+      <p class="guided-subtitle">Esta plataforma es un motor de decisión para transacciones inmobiliarias de alto valor en Santa Fe.</p>
+      <ol class="guided-steps">
+        <li class="guided-step">
+          <div class="guided-step-num">1</div>
+          <div class="guided-step-text">
+            <div class="guided-step-label">Filtrar el universo</div>
+            <div class="guided-step-desc">Usa las fichas rápidas (torre, recámaras, oportunidad) para reducir el ruido. Abre “Filtros avanzados” para ajustar precio mínimo, m² y ordenamiento.</div>
+          </div>
+        </li>
+        <li class="guided-step">
+          <div class="guided-step-num">2</div>
+          <div class="guided-step-text">
+            <div class="guided-step-label">Inspeccionar unidades clave</div>
+            <div class="guided-step-desc">Haz clic en cualquier listado para ver el score composite, banda de negociación, historial de precio y el perfil de confianza del agente.</div>
+          </div>
+        </li>
+        <li class="guided-step">
+          <div class="guided-step-num">3</div>
+          <div class="guided-step-text">
+            <div class="guided-step-label">Comparar hasta 3 opciones</div>
+            <div class="guided-step-desc">Ve a “Comparar” para ver un análisis lado a lado de precio/m², días en mercado y leverage. Ideal antes de tomar una decisión final.</div>
+          </div>
+        </li>
+        <li class="guided-step">
+          <div class="guided-step-num">4</div>
+          <div class="guided-step-text">
+            <div class="guided-step-label">Ejecutar el operador</div>
+            <div class="guided-step-desc">Usa “Operador” para ver la lista de acción del día: unidades a negociar, mover rápido, verificar o monitorear — con scripts de apertura incluidos.</div>
+          </div>
+        </li>
+      </ol>
+      <div class="guided-actions">
+        <button class="guided-close-btn" id="guidedCloseBtn">Entendido</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ═══ DETAIL DRAWER OVERLAY ═══ -->
+  <div class="drawer-overlay" id="drawerOverlay" aria-hidden="true"></div>
+
+  <script src="./app.js?v=20260404-1654"></script>
+  <script>window.sfBotAvatarImage = './img/sf-bot-avatar.jpg?v=20260404-1736';</script>
+  <script src="./bot.js?v=20260404-1736"></script>
+<script data-pplx-inline-edit>
+(function(){
+  if(window===window.top)return;
+  function inlineAll(orig,clone){
+    if(orig.nodeType!==1)return;
+    try{
+      var cs=getComputedStyle(orig);
+      var t='';
+      for(var i=0;i<cs.length;i++){t+=cs[i]+':'+cs.getPropertyValue(cs[i])+';';}
+      clone.style.cssText=t;
+    }catch(e){}
+    var oc=orig.children,cc=clone.children;
+    for(var j=0;j<oc.length&&j<cc.length;j++){inlineAll(oc[j],cc[j]);}
+  }
+  function stripExternal(clone){
+    var imgs=clone.querySelectorAll('img');
+    for(var i=0;i<imgs.length;i++){
+      var s=imgs[i].getAttribute('src');
+      if(s&&!s.startsWith('data:'))imgs[i].removeAttribute('src');
+    }
+    var all=clone.querySelectorAll('*');
+    for(var i=0;i<all.length;i++){
+      var st=all[i].style.cssText;
+      if(st&&st.indexOf('url(')>=0){
+        all[i].style.cssText=st.replace(/url\(["']?(?!data:)[^)"']*["']?\)/gi,'none');
+      }
+    }
+  }
+  window.addEventListener('message',function(e){
+    if(!e.data||e.data.type!=='INLINE_EDIT_CAPTURE_REQUEST')return;
+    var scrollX=window.scrollX||window.pageXOffset||0;
+    var scrollY=window.scrollY||window.pageYOffset||0;
+    var w=window.innerWidth,h=window.innerHeight;
+    try{
+      var clone=document.documentElement.cloneNode(true);
+      var rm=clone.querySelectorAll('script,link[rel="stylesheet"],style');
+      for(var i=0;i<rm.length;i++){rm[i].remove();}
+      inlineAll(document.documentElement,clone);
+      stripExternal(clone);
+      var html=new XMLSerializer().serializeToString(clone);
+      var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'">'
+        +'<foreignObject width="100%" height="100%">'
+        +'<div xmlns="http://www.w3.org/1999/xhtml" style="width:'+w+'px;height:'+h+'px;overflow:hidden">'
+        +'<div style="transform:translate(-'+scrollX+'px,-'+scrollY+'px);transform-origin:top left">'
+        +html+'</div></div></foreignObject></svg>';
+      var svgUrl='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+      var img=new Image();
+      img.onload=function(){
+        var c=document.createElement('canvas');c.width=w;c.height=h;
+        c.getContext('2d').drawImage(img,0,0);
+        window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:c.toDataURL('image/png'),scrollX:scrollX,scrollY:scrollY},'*');
+      };
+      img.onerror=function(){
+        window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:null,scrollX:scrollX,scrollY:scrollY},'*');
+      };
+      img.src=svgUrl;
+    }catch(err){
+      window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:null,scrollX:scrollX,scrollY:scrollY},'*');
+    }
+  });
+})();
+</script></body>
+</html>
